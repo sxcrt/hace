@@ -32,7 +32,8 @@ if (GEMINI_API_KEY) {
     });
 }
 
-const DATA_DIR = process.env.VERCEL ? path.join("/tmp", "data", "users") : path.join(__dirname, "data", "users");
+const PROJECT_ROOT = path.join(__dirname, "..");
+const DATA_DIR = process.env.VERCEL ? path.join("/tmp", "data", "users") : path.join(PROJECT_ROOT, "data", "users");
 if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
 }
@@ -96,11 +97,11 @@ const SPA_ROUTES = [
 ];
 
 app.get(SPA_ROUTES, (req, res) => {
-    res.sendFile(path.join(__dirname, "index.html"));
+    res.sendFile(path.join(PROJECT_ROOT, "index.html"));
 });
 
 // Serve static assets without directory index fallback
-app.use(express.static(path.join(__dirname), { index: false }));
+app.use(express.static(PROJECT_ROOT, { index: false }));
 
 // Helper: Read user file
 function getUserFilePath(uid) {
@@ -546,7 +547,4 @@ ${studyText.slice(0, 35000)}
     }
 });
 
-// Start server
-app.listen(PORT, "0.0.0.0", () => {
-    console.log(`StudyVerse server running on http://0.0.0.0:${PORT}`);
-});
+module.exports = app;
