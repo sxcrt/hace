@@ -1,0 +1,21 @@
+{
+  "uid": "sv_usr_test_12345",
+  "createdAt": "2026-09-25T17:52:05.133Z",
+  "tasks": [
+    {
+      "id": "t1",
+      "title": "Review Cell Respiration Notes",
+      "completed": false
+    }
+  ],
+  "notes": [],
+  "events": [],
+  "courses": [],
+  "decks": [],
+  "pomodoro": {
+    "completedSessions": 0,
+    "totalFocusMinutes": 0,
+    "activeSession": null
+  },
+  "updatedAt": "2026-09-25T17:52:05.133Z"
+}

@@ -1,0 +1,8 @@
+{
+  "name": "StudyVerse",
+  "description": "Comprehensive student study platform featuring an integrated dashboard, academic calendar, task tracking, class notes, flashcards, Pomodoro focus timer, and course management.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

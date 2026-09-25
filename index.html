@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudyVerse</title>
+    <meta name="description" content="Comprehensive student study platform featuring an integrated dashboard, academic calendar, task tracking, class notes, flashcards, Pomodoro focus timer, and course management.">
+    <meta property="og:title" content="StudyVerse">
+    <meta property="og:description" content="Comprehensive student study platform featuring an integrated dashboard, academic calendar, task tracking, class notes, flashcards, Pomodoro focus timer, and course management.">
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <link rel="stylesheet" href="/app.css">
+    <script src="/app.js" defer></script>
+</head>
+<body>
+    <!-- Background Constellation & Shooting Star Canvas -->
+    <canvas id="constellationCanvas"></canvas>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="brand-area" onclick="window.StudyVerse.Router.navigate('dashboard')">
+                <div class="brand-logo-wrap">
+                    <img class="brand-logo-img" src="/assets/StudyVerseLogo.png" alt="StudyVerse Logo">
+                </div>
+                <div class="brand-title">Study<span>Verse</span></div>
+            </div>
+
+            <!-- Main Navigation -->
+            <nav class="app-nav" aria-label="Main Navigation">
+                <button class="nav-item active" data-route="dashboard">Dashboard</button>
+                <button class="nav-item" data-route="flashcards">Flashcards</button>
+                <button class="nav-item" data-route="pomodoro">Pomodoro</button>
+                <button class="nav-item" data-route="tasks">Tasks</button>
+                <button class="nav-item" data-route="notes">Notes</button>
+                <button class="nav-item" data-route="calendar">Calendar</button>
+                <button class="nav-item" data-route="courses">Courses</button>
+            </nav>
+
+            <!-- Header Right: Persistent Pomodoro & Profile Dropdown -->
+            <div class="header-actions">
+                <div id="headerPomoPill" class="header-pomo-pill" title="Click to view Pomodoro session">
+                    <span class="header-pomo-dot"></span>
+                    <span id="headerPomoTime">25:00</span>
+                    <button id="headerPomoToggle" class="header-pomo-btn" type="button" title="Start or pause timer">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Profile Trigger -->
+                <div class="profile-wrap">
+                    <button id="headerProfileBtn" class="profile-btn" type="button">
+                        <span id="profileBtnAvatar" class="profile-avatar-icon"></span>
+                        <span id="profileBtnName">Scholar</span>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+
+                    <!-- Dropdown -->
+                    <div id="profileDropdown" class="profile-dropdown">
+                        <div class="profile-dropdown-header">
+                            <div>
+                                <div id="dropProfileName" style="font-weight:600; font-size:0.9rem;">Scholar</div>
+                                <div id="dropProfileStreak" style="font-size:0.75rem; color:var(--sv-orange); font-weight:600;">1 Day Streak</div>
+                            </div>
+                        </div>
+
+                        <button id="dropEditProfileBtn" class="profile-menu-item" type="button">
+                            <span>Edit Profile & Avatar</span>
+                            <span style="color:var(--text-dim);">&rarr;</span>
+                        </button>
+
+                        <button id="dropToggleThemeBtn" class="profile-menu-item" type="button">
+                            <span id="profileThemeLabel">Switch to Dark Theme</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                                <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                            </svg>
+                        </button>
+
+                        <div class="profile-menu-divider"></div>
+
+                        <button id="dropResetBtn" class="profile-menu-item btn-danger" type="button">
+                            <span>Reset to Blank Slate</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Views -->
+        <main class="main-content">
+            
+            <!-- ============================================================
+                 VIEW 1: DASHBOARD WITH STUDY METRICS & CUSTOM TARGETS
+                 ============================================================ -->
+            <section id="view-dashboard" class="app-view active-view">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                        </svg>
+                        Study Dashboard
+                    </h1>
+                </div>
+
+                <!-- 4 Top Analytics Metric Cards -->
+                <div class="metrics-overview-row">
+                    <div class="metric-stat-card">
+                        <div class="metric-stat-label">
+                            <span>Study Streak</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/>
+                            </svg>
+                        </div>
+                        <div id="dashMetricStreak" class="metric-stat-value">1 Day</div>
+                        <div class="metric-stat-sub">Consecutive study days</div>
+                    </div>
+
+                    <div class="metric-stat-card">
+                        <div class="metric-stat-label">
+                            <span>Focus Time Today</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                        <div id="dashMetricFocus" class="metric-stat-value">0 min</div>
+                        <div class="metric-stat-sub">Logged via Pomodoro</div>
+                    </div>
+
+                    <div class="metric-stat-card">
+                        <div class="metric-stat-label">
+                            <span>Deck Mastery</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                        <div id="dashMetricAccuracy" class="metric-stat-value">0%</div>
+                        <div class="metric-stat-sub">Anki cards mastered</div>
+                    </div>
+
+                    <div class="metric-stat-card">
+                        <div class="metric-stat-label">
+                            <span>Task Progress</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                            </svg>
+                        </div>
+                        <div id="dashMetricTasks" class="metric-stat-value">0 / 0</div>
+                        <div class="metric-stat-sub">Completed assignments</div>
+                    </div>
+                </div>
+
+                <!-- Weekly Velocity Tracker -->
+                <div class="velocity-chart-card">
+                    <div class="velocity-header">
+                        <div>
+                            <div style="font-weight:600; font-size:0.92rem; color:var(--text-primary);">Weekly Focus Activity</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Study sessions completed over the last 7 days</div>
+                        </div>
+                    </div>
+                    <div id="velocityBarsWrap" class="velocity-bars-wrap"></div>
+                </div>
+
+                <!-- Custom Metrics Section -->
+                <div class="custom-metrics-section">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-weight:600; font-size:0.92rem; color:var(--text-primary);">Custom Metrics & Targets</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Track custom milestones like textbook chapters, problems, or exam practice</div>
+                        </div>
+                        <button id="openAddMetricModalBtn" class="btn btn-secondary btn-sm" type="button">
+                            + Add Metric
+                        </button>
+                    </div>
+
+                    <div id="customMetricsGrid" class="custom-metrics-grid"></div>
+                </div>
+
+                <!-- 3-Column Overview -->
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border-subtle);">
+                            <span style="font-weight:600; font-size:0.9rem;">Today's Tasks</span>
+                            <button class="btn btn-subtle btn-sm" data-route-jump="tasks">&rarr;</button>
+                        </div>
+                        <div id="dashTodayTasksList"></div>
+                    </div>
+
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border-subtle);">
+                            <span style="font-weight:600; font-size:0.9rem;">Schedule</span>
+                            <button class="btn btn-subtle btn-sm" data-route-jump="calendar">&rarr;</button>
+                        </div>
+                        <div id="dashEventsList"></div>
+                    </div>
+
+                    <div class="card">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border-subtle);">
+                            <span style="font-weight:600; font-size:0.9rem;">Flashcard Decks</span>
+                            <button class="btn btn-subtle btn-sm" data-route-jump="flashcards">&rarr;</button>
+                        </div>
+                        <div id="dashDecksList"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 VIEW 2: FLASHCARDS (AI + ANKI PRACTICE)
+                 ============================================================ -->
+            <section id="view-flashcards" class="app-view">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+                        </svg>
+                        Flashcards Studio
+                    </h1>
+                </div>
+
+                <div class="flashcards-subnav" id="flashcardsSubnav">
+                    <button class="subnav-tab active" data-tab="generator">Generate with AI</button>
+                    <button class="subnav-tab" data-tab="decks">My Decks</button>
+                    <button class="subnav-tab" data-tab="practice" style="display:none;" id="tabAnkiPracticeBtn">Practice Mode</button>
+                </div>
+
+                <!-- Generator Tab -->
+                <div id="fcTabGenerator">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+                        <div>
+                            <div id="fcDropzone" class="upload-dropzone">
+                                <input type="file" id="fcFileInput" accept=".pdf,.docx,.txt,.md">
+                                <div class="dropzone-title">Upload Lecture PDF / Document</div>
+                                <p class="dropzone-hint">Drag & drop textbook notes, slides, or syllabus</p>
+                                <div id="fcUploadStatus" style="font-size:0.8rem; color:var(--sv-orange); margin-top:4px;"></div>
+                            </div>
+
+                            <div id="fcFileBadge" class="card" style="display:none; padding:8px 12px; margin-bottom:12px; justify-content:space-between; align-items:center;">
+                                <span id="fcBadgeFileName" style="font-size:0.85rem; font-weight:600;">Document.pdf</span>
+                                <button id="fcRemoveFileBtn" class="btn btn-subtle btn-sm">&times;</button>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="fcStudyNotesInput">Or Paste Notes & Excerpts</label>
+                                <textarea id="fcStudyNotesInput" class="textarea" placeholder="Paste textbook excerpts or lecture notes here..."></textarea>
+                            </div>
+
+                            <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:10px;">
+                                <div class="form-group">
+                                    <label class="form-label" for="fcDeckTitle">Deck Title</label>
+                                    <input type="text" id="fcDeckTitle" class="input" placeholder="e.g. Communication Channels">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="fcCardCount">Cards</label>
+                                    <select id="fcCardCount" class="select">
+                                        <option value="5">5 Cards</option>
+                                        <option value="10" selected>10 Cards</option>
+                                        <option value="15">15 Cards</option>
+                                        <option value="20">20 Cards</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="fcCourseSelect">Assign to Course (Optional)</label>
+                                <select id="fcCourseSelect" class="select">
+                                    <option value="">No Course (General)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="fcTopicFocus">Topic Focus (Optional)</label>
+                                <input type="text" id="fcTopicFocus" class="input" placeholder="e.g. Focus on definitions and practical differences">
+                            </div>
+
+                            <button id="fcGenerateBtn" class="btn btn-primary btn-lg" style="width:100%;" type="button">
+                                Generate Flashcards
+                            </button>
+                        </div>
+
+                        <div>
+                            <div id="fcGeneratedPreview" style="display:none;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                    <span id="fcPreviewCount" style="font-weight:600; font-size:0.88rem;">10 cards</span>
+                                    <button id="fcSaveDeckBtn" class="btn btn-primary btn-sm" type="button">Save to My Decks</button>
+                                </div>
+                                <div id="fcPreviewCardsList" style="max-height:480px; overflow-y:auto;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Decks List Tab -->
+                <div id="fcTabDecks" style="display:none;">
+                    <div id="fcDecksList" class="decks-grid"></div>
+                </div>
+
+                <!-- Anki Practice Tab -->
+                <div id="fcTabPractice" style="display:none;">
+                    <div class="anki-stage">
+                        <div id="ankiPracticeScreen">
+                            <div class="anki-progress-bar-wrap">
+                                <div id="ankiProgressFill" class="anki-progress-fill"></div>
+                            </div>
+
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin:10px 0 16px;">
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <h3 id="ankiDeckTitle" style="font-family:var(--font-heading); font-size:1.05rem; font-weight:600;">Deck</h3>
+                                    <span id="ankiCardStreakPill" class="anki-streak-pill">0 in a row</span>
+                                </div>
+                                <div style="display:flex; align-items:center; gap:12px;">
+                                    <span id="ankiCardIndexNum" style="font-family:var(--font-mono); font-size:0.8rem; color:var(--text-muted);">1 / 10</span>
+                                    <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Flashcards.switchTab('decks')">Exit</button>
+                                </div>
+                            </div>
+
+                            <div id="ankiCardContainer" class="anki-card-container">
+                                <div class="anki-card-inner">
+                                    <div class="anki-card-front">
+                                        <span id="ankiCardConcept" class="anki-card-concept-tag">Concept</span>
+                                        <div id="ankiCardQuestion" class="anki-card-body-text">Question</div>
+                                        <div style="font-size:0.75rem; color:var(--text-dim); text-align:center;">Click card or press [Space] to flip</div>
+                                    </div>
+
+                                    <div class="anki-card-back">
+                                        <span class="anki-card-concept-tag">Answer</span>
+                                        <div style="margin: auto 0;">
+                                            <div id="ankiCardBackQuestion" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">Question</div>
+                                            <div id="ankiCardAnswer" class="anki-card-body-text">Answer</div>
+                                            <div id="ankiCardHint" class="card" style="display:none; padding:8px 12px; margin-top:10px; font-size:0.82rem; background:var(--bg-subtle);"></div>
+                                        </div>
+                                        <div style="font-size:0.75rem; color:var(--text-dim); text-align:center;">Select recall rating below</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="ankiRatingsBar" class="anki-ratings-bar">
+                                <button class="anki-rating-btn" data-rating="again" type="button">
+                                    <span style="font-weight:600;">Again</span>
+                                    <span style="font-size:0.7rem; color:var(--text-muted);">&lt;1m [1]</span>
+                                </button>
+                                <button class="anki-rating-btn" data-rating="hard" type="button">
+                                    <span style="font-weight:600;">Hard</span>
+                                    <span style="font-size:0.7rem; color:var(--text-muted);">10m [2]</span>
+                                </button>
+                                <button class="anki-rating-btn anki-rating-good" data-rating="good" type="button">
+                                    <span style="font-weight:600; color:var(--sv-orange);">Good</span>
+                                    <span style="font-size:0.7rem; color:var(--text-muted);">1d [3]</span>
+                                </button>
+                                <button class="anki-rating-btn" data-rating="easy" type="button">
+                                    <span style="font-weight:600;">Easy</span>
+                                    <span style="font-size:0.7rem; color:var(--text-muted);">4d [4]</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="ankiResultsScreen" class="card" style="display:none; text-align:center; padding:36px 20px;">
+                            <h2 style="font-family:var(--font-heading); font-size:1.6rem; font-weight:700; margin-bottom:8px;">Session Complete</h2>
+                            <p style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:20px;">All cards scheduled into your spaced repetition queue.</p>
+                            <button id="ankiReturnDecksBtn" class="btn btn-primary" type="button">Return to Decks</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 VIEW 3: POMODORO TIMER
+                 ============================================================ -->
+            <section id="view-pomodoro" class="app-view">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        Focus Timer
+                    </h1>
+                </div>
+
+                <div class="pomodoro-container">
+                    <div class="pomo-mode-tabs">
+                        <button class="pomo-tab-btn active" data-mode="focus">Focus (25m)</button>
+                        <button class="pomo-tab-btn" data-mode="deep">Deep Focus (50m)</button>
+                        <button class="pomo-tab-btn" data-mode="shortBreak">Short Break (5m)</button>
+                        <button class="pomo-tab-btn" data-mode="longBreak">Long Break (15m)</button>
+                    </div>
+
+                    <div class="pomo-dial-wrap">
+                        <svg class="pomo-dial-svg" viewBox="0 0 260 260">
+                            <circle class="pomo-dial-bg" cx="130" cy="130" r="120" />
+                            <circle id="pomoProgressRing" class="pomo-dial-progress" cx="130" cy="130" r="120" />
+                        </svg>
+                        <div class="pomo-dial-center">
+                            <div id="pomoTimeDisplay" class="pomo-time-display">25:00</div>
+                            <div id="pomoModeLabel" style="font-size:0.8rem; font-weight:600; color:var(--sv-orange); margin-top:4px;">Focus Session</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:center; align-items:center; gap:12px; margin-bottom:24px;">
+                        <button id="pomoResetBtn" class="btn btn-secondary" type="button">Reset</button>
+                        <button id="pomoStartBtn" class="btn btn-primary btn-lg" type="button">Start Focus</button>
+                        <button id="pomoSkipBtn" class="btn btn-subtle" type="button">Skip</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 VIEW 4: STREAMLINED TASKS
+                 ============================================================ -->
+            <section id="view-tasks" class="app-view">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2">
+                            <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                        Tasks
+                    </h1>
+                </div>
+
+                <div class="tasks-container">
+                    <div class="task-creator-box">
+                        <div class="task-creator-main">
+                            <input type="text" id="taskInputTitle" class="task-creator-input" placeholder="Type a study task and press Enter...">
+                            <button id="taskAddBtn" class="btn btn-primary btn-sm" type="button">Add</button>
+                        </div>
+                        <div class="task-creator-meta">
+                            <button id="taskTodayChip" class="today-toggle-chip" type="button">Today</button>
+                            <input type="date" id="taskDueDateInput" class="input" style="width:auto; padding:2px 8px; font-size:0.75rem;">
+                            <select id="taskPrioritySelect" class="select" style="width:auto; padding:2px 8px; font-size:0.75rem;">
+                                <option value="medium">Medium Priority</option>
+                                <option value="high">High Priority</option>
+                                <option value="low">Low Priority</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="tasksList"></div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 VIEW 5: NOTES
+                 ============================================================ -->
+            <section id="view-notes" class="app-view">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                        Class Notes
+                    </h1>
+                    <button id="noteNewBtn" class="btn btn-primary btn-sm" type="button">+ New Note</button>
+                </div>
+
+                <div class="notes-container">
+                    <div class="notes-sidebar">
+                        <div style="font-size:0.75rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">Pages</div>
+                        <div id="notesList" style="display:flex; flex-direction:column; gap:2px;"></div>
+                    </div>
+
+                    <div id="noteEditorPane" class="note-editor-pane">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                            <input type="text" id="noteEditorTitle" class="note-editor-title" placeholder="Untitled">
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <select id="noteCourseSelect" class="select" style="width:auto; font-size:0.78rem; padding:3px 8px;"></select>
+                                <button id="noteMakeFlashcardsBtn" class="btn btn-accent btn-sm" type="button" title="Convert note into active-recall flashcards">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                    </svg>
+                                    <span>Make Cards</span>
+                                </button>
+                                <button id="noteDeleteBtn" class="btn btn-subtle btn-sm" type="button">&times;</button>
+                            </div>
+                        </div>
+                        <textarea id="noteEditorBody" class="note-editor-body" placeholder="Write thoughts, summaries, and lecture notes..."></textarea>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 VIEW 6: CALENDAR
+                 ============================================================ -->
+            <section id="view-calendar" class="app-view">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        Calendar
+                    </h1>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div class="calendar-view-tabs">
+                            <button class="cal-tab-btn active" data-cal-view="month">Month</button>
+                            <button class="cal-tab-btn" data-cal-view="week">Weekdays</button>
+                        </div>
+                        <button id="calPrevBtn" class="btn btn-secondary btn-sm">&larr;</button>
+                        <button id="calTodayBtn" class="btn btn-secondary btn-sm">Today</button>
+                        <button id="calNextBtn" class="btn btn-secondary btn-sm">&rarr;</button>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h2 id="calMonthTitle" style="font-family:var(--font-heading); font-size:1.25rem; font-weight:700;">Month Year</h2>
+                </div>
+
+                <div id="calMonthViewContainer" class="cal-grid-container">
+                    <div class="cal-days-header">
+                        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                    </div>
+                    <div id="calGrid" class="cal-grid"></div>
+                </div>
+
+                <div id="calWeekViewContainer" style="display:none;">
+                    <div id="calWeekGrid" class="week-grid-container"></div>
+                </div>
+            </section>
+
+            <!-- ============================================================
+                 VIEW 7: COURSES
+                 ============================================================ -->
+            <section id="view-courses" class="app-view">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                        </svg>
+                        Courses
+                    </h1>
+                    <button id="courseAddBtn" class="btn btn-primary btn-sm" type="button" data-action="open-add-course" onclick="window.StudyVerse ? window.StudyVerse.Courses.openAddCourseModal() : document.getElementById('addCourseModal').classList.add('show')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        <span>Add Course</span>
+                    </button>
+                </div>
+
+                <div id="coursesGrid" class="courses-grid"></div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- MODAL: ADD COURSE -->
+    <div id="addCourseModal" class="modal-backdrop">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Enrolled Course</h3>
+                <button class="modal-close-btn" type="button" onclick="document.getElementById('addCourseModal').classList.remove('show')">&times;</button>
+            </div>
+            <div style="display:grid; grid-template-columns: 120px 1fr; gap:12px;">
+                <div class="form-group">
+                    <label class="form-label" for="newCourseCode">Course Code</label>
+                    <input type="text" id="newCourseCode" class="input" placeholder="e.g. CS101">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="newCourseTitle">Course Title</label>
+                    <input type="text" id="newCourseTitle" class="input" placeholder="e.g. Algorithms & Data Structures">
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                <div class="form-group">
+                    <label class="form-label" for="newCourseTerm">Term / Semester</label>
+                    <select id="newCourseTerm" class="select">
+                        <option value="Fall 2026">Fall 2026</option>
+                        <option value="Spring 2026">Spring 2026</option>
+                        <option value="Summer 2026">Summer 2026</option>
+                        <option value="Winter 2026">Winter 2026</option>
+                        <option value="Annual">Annual</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="newCourseInstructor">Instructor (Optional)</label>
+                    <input type="text" id="newCourseInstructor" class="input" placeholder="e.g. Prof. Alan Turing">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="newCourseLocation">Location / Room (Optional)</label>
+                <input type="text" id="newCourseLocation" class="input" placeholder="e.g. Science Hall 302 / Zoom">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Color Accent</label>
+                <div id="newCourseColorPalette" class="course-palette-row">
+                    <button type="button" class="course-color-btn active" data-color="orange" style="background:#e8983c;"></button>
+                    <button type="button" class="course-color-btn" data-color="blue" style="background:#3b82f6;"></button>
+                    <button type="button" class="course-color-btn" data-color="emerald" style="background:#10b981;"></button>
+                    <button type="button" class="course-color-btn" data-color="purple" style="background:#8b5cf6;"></button>
+                    <button type="button" class="course-color-btn" data-color="rose" style="background:#f43f5e;"></button>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" type="button" onclick="document.getElementById('addCourseModal').classList.remove('show')">Cancel</button>
+                <button id="saveNewCourseBtn" class="btn btn-primary" type="button">Create Course</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD CUSTOM METRIC -->
+    <div id="addMetricModal" class="modal-backdrop">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title">Add Custom Study Metric</h3>
+                <button class="modal-close-btn" type="button" onclick="document.getElementById('addMetricModal').classList.remove('show')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="metricNameInput">Metric Name</label>
+                <input type="text" id="metricNameInput" class="input" placeholder="e.g. Practice Exam Questions, Pages Read">
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <div class="form-group">
+                    <label class="form-label" for="metricTargetInput">Target Goal</label>
+                    <input type="number" id="metricTargetInput" class="input" value="20" min="1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="metricUnitInput">Unit / Suffix</label>
+                    <input type="text" id="metricUnitInput" class="input" value="problems" placeholder="e.g. pages, hours">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" type="button" onclick="document.getElementById('addMetricModal').classList.remove('show')">Cancel</button>
+                <button id="saveCustomMetricBtn" class="btn btn-primary" type="button">Save Metric</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT PROFILE & AVATAR -->
+    <div id="profileEditModal" class="modal-backdrop">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Profile</h3>
+                <button class="modal-close-btn" type="button" onclick="document.getElementById('profileEditModal').classList.remove('show')">&times;</button>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="profileEditUsernameInput">Username / Display Name</label>
+                <input type="text" id="profileEditUsernameInput" class="input" placeholder="Enter username">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Choose Avatar Preset</label>
+                <div class="pfp-preset-grid">
+                    <button class="pfp-preset-opt btn btn-secondary btn-sm" data-preset="star" type="button">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        <span>Star</span>
+                    </button>
+                    <button class="pfp-preset-opt btn btn-secondary btn-sm" data-preset="voyager" type="button">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+                        <span>Voyager</span>
+                    </button>
+                    <button class="pfp-preset-opt btn btn-secondary btn-sm" data-preset="atom" type="button">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(45 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(-45 12 12)"/></svg>
+                        <span>Atom</span>
+                    </button>
+                    <button class="pfp-preset-opt btn btn-secondary btn-sm" data-preset="quill" type="button">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>
+                        <span>Quill</span>
+                    </button>
+                    <button class="pfp-preset-opt btn btn-secondary btn-sm" data-preset="orbit" type="button">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9"/></svg>
+                        <span>Orbit</span>
+                    </button>
+                    <button class="pfp-preset-opt btn btn-secondary btn-sm" data-preset="scholar" type="button">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                        <span>Scholar</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Or Upload Custom Avatar Photo</label>
+                <input type="file" id="pfpFileInput" accept="image/*" class="input" style="font-size:0.8rem;">
+                <img id="pfpCustomPreview" style="display:none; width:48px; height:48px; border-radius:50%; margin-top:8px; object-fit:cover;" alt="PFP Preview">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" type="button" onclick="document.getElementById('profileEditModal').classList.remove('show')">Cancel</button>
+                <button id="saveProfileChangesBtn" class="btn btn-primary" type="button">Save Profile</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: DAY DETAIL INSPECTOR -->
+    <div id="calDayInspectorModal" class="modal-backdrop">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 id="calInspectorDateTitle" class="modal-title">Selected Date</h3>
+                <button id="calModalClose" class="modal-close-btn" type="button">&times;</button>
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <div style="font-size:0.75rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">Events Scheduled</div>
+                <div id="calInspectorEventsList"></div>
+            </div>
+
+            <div style="border-top:1px solid var(--border-subtle); padding-top:12px;">
+                <div style="font-size:0.75rem; font-weight:600; color:var(--text-muted); margin-bottom:8px;">+ Add Event at Specific Time</div>
+
+                <div class="form-group">
+                    <label class="form-label" for="calEventTitleInput">Event Title</label>
+                    <input type="text" id="calEventTitleInput" class="input" placeholder="e.g. Midterm Exam, Biology Lab">
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group">
+                        <label class="form-label" for="calEventStartTime">Start Time</label>
+                        <input type="time" id="calEventStartTime" class="input" value="09:00">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="calEventEndTime">End Time</label>
+                        <input type="time" id="calEventEndTime" class="input" value="10:30">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="calEventTagInput">Custom Tag</label>
+                    <select id="calEventTagInput" class="select">
+                        <option value="Lecture">Lecture</option>
+                        <option value="Exam">Exam / Midterm</option>
+                        <option value="Assignment">Assignment Due</option>
+                        <option value="Study Group">Study Session</option>
+                        <option value="Lab">Lab</option>
+                        <option value="Personal">Personal</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="calEventDescInput">Description (Optional)</label>
+                    <input type="text" id="calEventDescInput" class="input" placeholder="Room 204, chapters 1-3, notes...">
+                </div>
+
+                <div class="modal-actions">
+                    <button id="calModalSaveEventBtn" class="btn btn-primary" type="button">Add Event</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: COURSE DETAILS (EMBEDDED FLASHCARDS & NOTES) -->
+    <div id="courseDetailsModal" class="modal-backdrop">
+        <div class="modal-dialog" style="max-width:560px;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="courseModalTitle" class="modal-title">Course Details</h3>
+                    <div id="courseModalMeta" style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;"></div>
+                </div>
+                <button class="modal-close-btn" onclick="document.getElementById('courseDetailsModal').classList.remove('show')">&times;</button>
+            </div>
+
+            <div style="margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Embedded Flashcard Decks</div>
+                    <button class="btn btn-subtle btn-sm" onclick="document.getElementById('courseDetailsModal').classList.remove('show'); window.StudyVerse.Router.navigate('flashcards');">
+                        + New Deck
+                    </button>
+                </div>
+                <div id="courseModalDecksList"></div>
+            </div>
+
+            <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Course Notes</div>
+                    <button id="courseModalAddNoteBtn" class="btn btn-subtle btn-sm">+ New Note</button>
+                </div>
+                <div id="courseModalNotesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Notice -->
+    <div id="toastNotice" class="toast-notice">
+        <span id="toastText">Action completed</span>
+    </div>
+</body>
+</html>
