@@ -566,6 +566,14 @@ app.get("/api/health", (req, res) => {
     });
 });
 
+// Wildcard fallback for all other SPA client-side routes
+app.get("*", (req, res) => {
+    if (req.path.startsWith("/api/")) {
+        return res.status(404).json({ success: false, error: "API route not found" });
+    }
+    res.sendFile(path.join(__dirname, "index.html"));
+});
+
 // Start server
 if (process.env.NODE_ENV !== "test") {
     app.listen(PORT, "0.0.0.0", () => {
