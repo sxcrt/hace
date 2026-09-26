@@ -2922,7 +2922,7 @@ body {
 }
 
 @media (max-width: 680px) {
-    /* Flashcards AI Generator View Layout */
+    /* Flashcards Generator View Layout */
     #fcTabGenerator > div {
         grid-template-columns: 1fr !important;
         gap: 20px;

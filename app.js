@@ -1573,6 +1573,7 @@
             this.isFlipped = false;
             this.consecutiveCorrectStreak = 0; 
 
+            window.StudyVerse.Router.navigate('flashcards');
             this.switchTab('practice');
             document.getElementById('ankiPracticeScreen').style.display = 'block';
             document.getElementById('ankiResultsScreen').style.display = 'none';
@@ -2515,6 +2516,9 @@
                     Toast.show(`Assigned "${deck.title}" to ${course.code}`);
                     this.render();
                     Flashcards.renderDecksList();
+                    if (document.getElementById('courseDetailsModal').classList.contains('show')) {
+                        this.openCourseDetails(courseId);
+                    }
                 }
             } else if (payload && payload.type === 'note') {
                 const note = (Store.data.notes || []).find(n => n.id === payload.id);
@@ -2562,7 +2566,7 @@
                                 <span style="font-weight:600; font-size:0.86rem;">${escapeHtml(d.title)}</span>
                                 <span style="font-size:0.75rem; color:var(--text-muted); margin-left:8px;">${d.cards?.length || 0} cards</span>
                             </div>
-                            <button class="btn btn-primary btn-sm" onclick="window.StudyVerse.Flashcards.startPracticeById('${d.id}')">Practice</button>
+                            <button class="btn btn-primary btn-sm" onclick="document.getElementById('courseDetailsModal').classList.remove('show'); window.StudyVerse.Flashcards.startPracticeById('${d.id}')">Practice</button>
                         </div>
                     `).join('');
             }
