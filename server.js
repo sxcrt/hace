@@ -19,6 +19,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || "").trim();
+const OPENROUTER_API_KEY = (process.env.OPENROUTER_API_KEY || "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").trim();
+const OPENROUTER_MODEL = (process.env.OPENROUTER_MODEL || "google/gemini-3-flash-preview").trim();
 
 let ai = null;
 if (GEMINI_API_KEY) {
@@ -40,7 +42,7 @@ if (!fs.existsSync(DATA_DIR)) {
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
-        fileSize: 30 * 1024 * 1024 // 30 MB
+        fileSize: 30 * 1024 * 1024
     }
 });
 
@@ -48,14 +50,13 @@ app.use(cookieParser());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// User Identification Middleware via Cookies
 const COOKIE_NAME = "studyverse_uid";
 app.use((req, res, next) => {
     let uid = req.cookies[COOKIE_NAME];
     if (!uid || typeof uid !== "string" || !/^sv_usr_[a-zA-Z0-9_-]+$/.test(uid)) {
         uid = `sv_usr_${Date.now()}_${crypto.randomBytes(6).toString("hex")}`;
         res.cookie(COOKIE_NAME, uid, {
-            maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+            maxAge: 365 * 24 * 60 * 60 * 1000,
             httpOnly: false,
             sameSite: "lax",
             path: "/"
@@ -66,7 +67,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// SPA View Routes - Must precede static file handler to avoid serving directory index.html
 const SPA_ROUTES = [
     "/",
     "/dashboard",
@@ -99,10 +99,8 @@ app.get(SPA_ROUTES, (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Serve static assets without directory index fallback
 app.use(express.static(path.join(__dirname), { index: false }));
 
-// Helper: Read user file
 function getUserFilePath(uid) {
     const safeUid = uid.replace(/[^a-zA-Z0-9_-]/g, "");
     return path.join(DATA_DIR, `${safeUid}.json`);
@@ -128,11 +126,7 @@ function readUserData(uid) {
         lastActiveDate: new Date().toISOString().split("T")[0]
     };
 
-    const defaultMetrics = [
-        { id: "metric_slides", name: "Lecture Slides Reviewed", current: 18, target: 30, unit: "slides" },
-        { id: "metric_practice", name: "Practice Exam Questions", current: 12, target: 25, unit: "problems" },
-        { id: "metric_reading", name: "Textbook Chapters", current: 3, target: 5, unit: "chapters" }
-    ];
+    const defaultMetrics = [];
 
     if (!loaded) {
         return {
@@ -153,7 +147,6 @@ function readUserData(uid) {
         };
     }
 
-    // Retain loaded user state, keeping empty arrays if the user cleared or reset them
     return {
         ...loaded,
         uid,
@@ -179,7 +172,6 @@ function writeUserData(uid, data) {
     }
 }
 
-// User Data API (Cookie-Registered Persistence)
 app.get("/api/user-data", (req, res) => {
     const uid = req.studyverseUid;
     const userData = readUserData(uid);
@@ -208,7 +200,6 @@ app.post("/api/user-data", (req, res) => {
     });
 });
 
-// Clear / Reset to blank slate for the user
 app.post("/api/user-data/reset", (req, res) => {
     const uid = req.studyverseUid;
     const existing = readUserData(uid);
@@ -239,7 +230,6 @@ app.post("/api/user-data/reset", (req, res) => {
     res.json({ success: true, message: "Workspace reset to blank slate", data: blank });
 });
 
-// Text extraction helpers
 async function extractTextFromPDF(buffer) {
     if (!pdfParse) {
         return { text: buffer.toString("utf8"), pages: null };
@@ -262,7 +252,6 @@ async function extractTextFromDocx(buffer) {
     };
 }
 
-// File Upload Endpoint
 app.post("/api/upload-file", upload.single("file"), async (req, res) => {
     try {
         if (!req.file) {
@@ -309,13 +298,11 @@ app.post("/api/upload-file", upload.single("file"), async (req, res) => {
     }
 });
 
-// Clean and format text for educational flashcards
 function cleanTerm(term) {
     return term.replace(/^[\s●•\-\d\.\)]+/g, "").trim();
 }
 
 function generateSmartEducationalFlashcards(text, count = 10) {
-    // Split on newlines, bullet points, or semicolons/periods that precede a capitalized term or bullet
     const rawSegments = text
         .replace(/([●•])/g, "\n$1")
         .replace(/(\d+\.\s+)/g, "\n$1")
@@ -330,7 +317,6 @@ function generateSmartEducationalFlashcards(text, count = 10) {
         if (cards.length >= count) break;
         const line = rawSegments[i];
 
-        // Pattern 1: Term : Definition / Explanation
         const colonIdx = line.indexOf(":");
         if (colonIdx > 2 && colonIdx < 50) {
             const rawTerm = cleanTerm(line.slice(0, colonIdx));
@@ -348,7 +334,6 @@ function generateSmartEducationalFlashcards(text, count = 10) {
             }
         }
 
-        // Pattern 2: Term — Explanation or Term - Explanation
         const dashMatch = line.match(/^([^–—\-]{3,40})\s*[-–—]\s*(.+)$/);
         if (dashMatch) {
             const rawTerm = cleanTerm(dashMatch[1]);
@@ -366,7 +351,6 @@ function generateSmartEducationalFlashcards(text, count = 10) {
             }
         }
 
-        // Pattern 3: Bullet points with definition in the next line
         if (/^[●•\-\d\.]+\s+/.test(line) && i + 1 < rawSegments.length && !/^[●•\-\d\.]+\s+/.test(rawSegments[i + 1])) {
             const rawTerm = cleanTerm(line);
             const explanation = rawSegments[i + 1].trim();
@@ -379,13 +363,12 @@ function generateSmartEducationalFlashcards(text, count = 10) {
                     concept: rawTerm,
                     hint: `Think of examples and application for ${rawTerm}.`
                 });
-                i++; // skip explanation line
+                i++;
                 continue;
             }
         }
     }
 
-    // Paragraph-level concept extraction if not enough cards
     if (cards.length < count) {
         const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 35);
         paragraphs.forEach((p, idx) => {
@@ -417,7 +400,6 @@ function generateSmartEducationalFlashcards(text, count = 10) {
     return cards.slice(0, count);
 }
 
-// AI Flashcard Generation Endpoint using @google/genai with fallback retry
 app.post("/api/generate-flashcards", async (req, res) => {
     try {
         const studyText = (req.body?.studyText || "").trim();
@@ -432,13 +414,11 @@ app.post("/api/generate-flashcards", async (req, res) => {
             });
         }
 
-        const modelsToTry = ["gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.1-flash-lite"];
         let generatedCards = null;
         let generatedTitle = deckTitle;
         let usedModel = null;
 
-        if (ai) {
-            const prompt = `You are a world-class academic tutor crafting high-yield Anki flashcards for university students.
+        const prompt = `You are a world-class academic tutor crafting high-yield Anki flashcards for university students.
 Your mission is to generate thoughtful, active-recall flashcards that genuinely test understanding, mechanisms, and application rather than superficial word-matching.
 
 Task:
@@ -456,10 +436,90 @@ CRITICAL FLASHCARD WRITING RULES:
 3. "concept": Short 1-3 word topic tag or category.
 4. "hint": A subtle, helpful memory clue or mnemonic.
 
+Format as JSON:
+{
+  "deckTitle": "A concise, descriptive title for this deck",
+  "cards": [
+    {
+      "question": "Clear question here",
+      "answer": "Detailed answer here",
+      "concept": "Topic tag",
+      "hint": "Helpful mnemonic or clue"
+    }
+  ]
+}
+
 Study Material:
 ${studyText.slice(0, 35000)}
 `;
 
+        if (OPENROUTER_API_KEY && !generatedCards) {
+            try {
+                const orResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                        "Content-Type": "application/json",
+                        "HTTP-Referer": "https://studyverse.app",
+                        "X-Title": "StudyVerse"
+                    },
+                    body: JSON.stringify({
+                        model: OPENROUTER_MODEL,
+                        messages: [
+                            {
+                                role: "system",
+                                content: "You are an expert academic tutor and flashcard architect. Output valid JSON only with structure {\"deckTitle\": string, \"cards\": [{\"question\": string, \"answer\": string, \"concept\": string, \"hint\": string}]}."
+                            },
+                            {
+                                role: "user",
+                                content: prompt
+                            }
+                        ],
+                        response_format: { type: "json_object" },
+                        temperature: 0.3
+                    })
+                });
+
+                if (orResponse.ok) {
+                    const orData = await orResponse.json();
+                    const rawContent = orData.choices?.[0]?.message?.content;
+                    if (rawContent) {
+                        let parsed = null;
+                        try {
+                            parsed = JSON.parse(rawContent);
+                        } catch (e) {
+                            const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+                            if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
+                        }
+
+                        if (parsed && Array.isArray(parsed.cards) && parsed.cards.length > 0) {
+                            generatedCards = parsed.cards.map((c, idx) => ({
+                                id: `fc_${Date.now()}_${idx}`,
+                                question: cleanTerm((c.question || "").trim()),
+                                answer: (c.answer || "").trim(),
+                                concept: (c.concept || "Key Concept").trim(),
+                                hint: (c.hint || "").trim(),
+                                repetitions: 0,
+                                interval: 0,
+                                easeFactor: 2.5,
+                                dueDate: new Date().toISOString(),
+                                status: "new"
+                            }));
+                            generatedTitle = parsed.deckTitle || deckTitle;
+                            usedModel = OPENROUTER_MODEL;
+                        }
+                    }
+                } else {
+                    const errText = await orResponse.text();
+                    console.warn("OpenRouter API error response:", errText);
+                }
+            } catch (orErr) {
+                console.warn("OpenRouter fetch error:", orErr.message || orErr);
+            }
+        }
+
+        if (ai && !generatedCards) {
+            const modelsToTry = ["gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.1-flash-lite"];
             for (const modelName of modelsToTry) {
                 try {
                     const response = await ai.models.generateContent({
@@ -511,12 +571,11 @@ ${studyText.slice(0, 35000)}
                             }));
                             generatedTitle = parsed.deckTitle || deckTitle;
                             usedModel = modelName;
-                            break; // Success!
+                            break;
                         }
                     }
                 } catch (geminiError) {
                     console.warn(`Gemini generation with ${modelName} encountered an issue:`, geminiError.message || geminiError);
-                    // continue to next model in loop
                 }
             }
         }
@@ -530,7 +589,6 @@ ${studyText.slice(0, 35000)}
             });
         }
 
-        // Smart educational fallback synthesizer if AI models are temporarily busy
         const fallbackCards = generateSmartEducationalFlashcards(studyText, requestedCount).map((c, idx) => ({
             ...c,
             repetitions: 0,
@@ -556,7 +614,6 @@ ${studyText.slice(0, 35000)}
     }
 });
 
-// Health check route for deployment monitoring
 app.get("/api/health", (req, res) => {
     res.json({
         status: "ok",
@@ -566,7 +623,6 @@ app.get("/api/health", (req, res) => {
     });
 });
 
-// Wildcard fallback for all other SPA client-side routes
 app.get("*", (req, res) => {
     if (req.path.startsWith("/api/")) {
         return res.status(404).json({ success: false, error: "API route not found" });
@@ -574,7 +630,6 @@ app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Start server
 if (process.env.NODE_ENV !== "test") {
     app.listen(PORT, "0.0.0.0", () => {
         console.log(`StudyVerse server running on http://0.0.0.0:${PORT}`);
@@ -582,4 +637,3 @@ if (process.env.NODE_ENV !== "test") {
 }
 
 module.exports = app;
-

@@ -12,11 +12,9 @@
     <script src="/app.js" defer></script>
 </head>
 <body>
-    <!-- Background Constellation & Shooting Star Canvas -->
     <canvas id="constellationCanvas"></canvas>
 
     <div class="app-container">
-        <!-- Header -->
         <header class="app-header">
             <div class="brand-area" onclick="window.StudyVerse.Router.navigate('dashboard')">
                 <div class="brand-logo-wrap">
@@ -25,7 +23,6 @@
                 <div class="brand-title">Study<span>Verse</span></div>
             </div>
 
-            <!-- Main Navigation -->
             <nav class="app-nav" aria-label="Main Navigation">
                 <button class="nav-item active" data-route="dashboard">Dashboard</button>
                 <button class="nav-item" data-route="flashcards">Flashcards</button>
@@ -36,7 +33,6 @@
                 <button class="nav-item" data-route="courses">Courses</button>
             </nav>
 
-            <!-- Header Right: Persistent Pomodoro & Profile Dropdown -->
             <div class="header-actions">
                 <div id="headerPomoPill" class="header-pomo-pill" title="Click to view Pomodoro session">
                     <span class="header-pomo-dot"></span>
@@ -48,7 +44,6 @@
                     </button>
                 </div>
 
-                <!-- Profile Trigger -->
                 <div class="profile-wrap">
                     <button id="headerProfileBtn" class="profile-btn" type="button">
                         <span id="profileBtnAvatar" class="profile-avatar-icon"></span>
@@ -58,7 +53,6 @@
                         </svg>
                     </button>
 
-                    <!-- Dropdown -->
                     <div id="profileDropdown" class="profile-dropdown">
                         <div class="profile-dropdown-header">
                             <div>
@@ -92,12 +86,7 @@
             </div>
         </header>
 
-        <!-- Main Views -->
         <main class="main-content">
-            
-            <!-- ============================================================
-                 VIEW 1: DASHBOARD WITH STUDY METRICS & CUSTOM TARGETS
-                 ============================================================ -->
             <section id="view-dashboard" class="app-view active-view">
                 <div class="page-header">
                     <h1 class="page-title">
@@ -109,7 +98,6 @@
                     </h1>
                 </div>
 
-                <!-- 4 Top Analytics Metric Cards -->
                 <div class="metrics-overview-row">
                     <div class="metric-stat-card">
                         <div class="metric-stat-label">
@@ -156,7 +144,6 @@
                     </div>
                 </div>
 
-                <!-- Weekly Velocity Tracker -->
                 <div class="velocity-chart-card">
                     <div class="velocity-header">
                         <div>
@@ -167,7 +154,6 @@
                     <div id="velocityBarsWrap" class="velocity-bars-wrap"></div>
                 </div>
 
-                <!-- Custom Metrics Section (Hidden if empty, phone-widget style) -->
                 <div id="customMetricsSection" class="custom-metrics-section" style="display:none;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                         <div>
@@ -182,7 +168,6 @@
                     <div id="customMetricsGrid" class="custom-metrics-grid"></div>
                 </div>
 
-                <!-- 3-Column Overview -->
                 <div class="dashboard-grid">
                     <div class="card">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--border-subtle);">
@@ -210,9 +195,6 @@
                 </div>
             </section>
 
-            <!-- ============================================================
-                 VIEW 2: FLASHCARDS (AI + ANKI PRACTICE)
-                 ============================================================ -->
             <section id="view-flashcards" class="app-view">
                 <div class="page-header">
                     <h1 class="page-title">
@@ -224,12 +206,11 @@
                 </div>
 
                 <div class="flashcards-subnav" id="flashcardsSubnav">
-                    <button class="subnav-tab active" data-tab="generator">Generate with AI</button>
+                    <button class="subnav-tab active" data-tab="generator">Generate</button>
                     <button class="subnav-tab" data-tab="decks">My Decks</button>
                     <button class="subnav-tab" data-tab="practice" style="display:none;" id="tabAnkiPracticeBtn">Practice Mode</button>
                 </div>
 
-                <!-- Generator Tab -->
                 <div id="fcTabGenerator">
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                         <div>
@@ -295,12 +276,10 @@
                     </div>
                 </div>
 
-                <!-- Decks List Tab -->
                 <div id="fcTabDecks" style="display:none;">
                     <div id="fcDecksList" class="decks-grid"></div>
                 </div>
 
-                <!-- Anki Practice Tab -->
                 <div id="fcTabPractice" style="display:none;">
                     <div class="anki-stage">
                         <div id="ankiPracticeScreen">
@@ -330,7 +309,7 @@
                                     <div class="anki-card-back">
                                         <span class="anki-card-concept-tag">Answer</span>
                                         <div style="margin: auto 0;">
-                                            <div id="ankiCardBackQuestion" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">Question</div>
+                                             <div id="ankiCardBackQuestion" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">Question</div>
                                             <div id="ankiCardAnswer" class="anki-card-body-text">Answer</div>
                                             <div id="ankiCardHint" class="card" style="display:none; padding:8px 12px; margin-top:10px; font-size:0.82rem; background:var(--bg-subtle);"></div>
                                         </div>
@@ -368,9 +347,6 @@
                 </div>
             </section>
 
-            <!-- ============================================================
-                 VIEW 3: POMODORO TIMER
-                 ============================================================ -->
             <section id="view-pomodoro" class="app-view">
                 <div class="page-header">
                     <h1 class="page-title">
@@ -408,9 +384,6 @@
                 </div>
             </section>
 
-            <!-- ============================================================
-                 VIEW 4: STREAMLINED TASKS
-                 ============================================================ -->
             <section id="view-tasks" class="app-view">
                 <div class="page-header">
                     <h1 class="page-title">
@@ -429,12 +402,19 @@
                         </div>
                         <div class="task-creator-meta">
                             <button id="taskTodayChip" class="today-toggle-chip" type="button">Today</button>
-                            <input type="date" id="taskDueDateInput" class="input" style="width:auto; padding:2px 8px; font-size:0.75rem;">
+                            <input type="date" id="taskDueDateInput" class="input" style="width:auto; padding:2px 8px; font-size:0.75rem;" title="Due Date">
+                            <input type="time" id="taskDueTimeInput" class="input" style="width:auto; padding:2px 8px; font-size:0.75rem;" title="Due Time">
+                            <select id="taskCourseSelect" class="select" style="width:auto; padding:2px 8px; font-size:0.75rem;">
+                                <option value="">No Course (General)</option>
+                            </select>
                             <select id="taskPrioritySelect" class="select" style="width:auto; padding:2px 8px; font-size:0.75rem;">
                                 <option value="medium">Medium Priority</option>
                                 <option value="high">High Priority</option>
                                 <option value="low">Low Priority</option>
                             </select>
+                        </div>
+                        <div style="margin-top:8px;">
+                            <input type="text" id="taskSubtextInput" class="input" style="font-size:0.78rem; padding:4px 8px;" placeholder="Optional sub-text, instructions, or notes...">
                         </div>
                     </div>
 
@@ -442,9 +422,6 @@
                 </div>
             </section>
 
-            <!-- ============================================================
-                 VIEW 5: NOTES
-                 ============================================================ -->
             <section id="view-notes" class="app-view">
                 <div class="page-header">
                     <h1 class="page-title">
@@ -482,9 +459,6 @@
                 </div>
             </section>
 
-            <!-- ============================================================
-                 VIEW 6: CALENDAR
-                 ============================================================ -->
             <section id="view-calendar" class="app-view">
                 <div class="page-header">
                     <h1 class="page-title">
@@ -521,9 +495,6 @@
                 </div>
             </section>
 
-            <!-- ============================================================
-                 VIEW 7: COURSES
-                 ============================================================ -->
             <section id="view-courses" class="app-view">
                 <div class="page-header">
                     <h1 class="page-title">
@@ -542,11 +513,9 @@
 
                 <div id="coursesGrid" class="courses-grid"></div>
             </section>
-
         </main>
     </div>
 
-    <!-- MODAL: ADD COURSE -->
     <div id="addCourseModal" class="modal-backdrop">
         <div class="modal-dialog">
             <div class="modal-header">
@@ -602,7 +571,6 @@
         </div>
     </div>
 
-    <!-- MODAL: ADD CUSTOM METRIC -->
     <div id="addMetricModal" class="modal-backdrop">
         <div class="modal-dialog">
             <div class="modal-header">
@@ -630,7 +598,6 @@
         </div>
     </div>
 
-    <!-- MODAL: EDIT PROFILE & AVATAR -->
     <div id="profileEditModal" class="modal-backdrop">
         <div class="modal-dialog">
             <div class="modal-header">
@@ -685,7 +652,6 @@
         </div>
     </div>
 
-    <!-- MODAL: DAY DETAIL INSPECTOR -->
     <div id="calDayInspectorModal" class="modal-backdrop">
         <div class="modal-dialog">
             <div class="modal-header">
@@ -741,7 +707,6 @@
         </div>
     </div>
 
-    <!-- MODAL: COURSE DETAILS (EMBEDDED FLASHCARDS & NOTES) -->
     <div id="courseDetailsModal" class="modal-backdrop">
         <div class="modal-dialog" style="max-width:560px;">
             <div class="modal-header">
@@ -772,7 +737,6 @@
         </div>
     </div>
 
-    <!-- MODAL: RESET TO BLANK SLATE CONFIRMATION -->
     <div id="resetConfirmModal" class="modal-backdrop">
         <div class="modal-dialog" style="max-width:460px;">
             <div class="modal-header">
@@ -805,7 +769,6 @@
         </div>
     </div>
 
-    <!-- Floating Custom Widget Trigger Button (Bottom Right) -->
     <div id="floatingAddWidgetWrap" class="floating-widget-wrap">
         <button id="floatingAddWidgetBtn" class="floating-widget-btn" type="button" title="Add Custom Metric Widget">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -815,7 +778,6 @@
         </button>
     </div>
 
-    <!-- Toast Notification Notice -->
     <div id="toastNotice" class="toast-notice">
         <span id="toastText">Action completed</span>
     </div>

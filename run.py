@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-"""
-StudyVerse — Local Application Launcher
-Detects runtime, installs missing dependencies when required, starts the server,
-automatically opens the default web browser, and handles graceful shutdown.
-"""
-
 import os
 import sys
 import time
@@ -23,7 +16,6 @@ URL = f"http://localhost:{PORT}"
 
 
 def check_runtime():
-    """Verify Node.js and npm are installed and available in PATH."""
     node_path = shutil.which("node")
     npm_path = shutil.which("npm")
 
@@ -45,7 +37,6 @@ def check_runtime():
 
 
 def ensure_dependencies():
-    """Install dependencies only if node_modules is missing or package.json is newer."""
     should_install = False
 
     if not NODE_MODULES.exists():
@@ -66,14 +57,12 @@ def ensure_dependencies():
 
 
 def is_port_in_use(port):
-    """Check if the target port is already open."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.5)
         return s.connect_ex(("127.0.0.1", port)) == 0
 
 
 def wait_for_server(port, timeout=15):
-    """Wait until the server starts accepting TCP connections."""
     start = time.time()
     while time.time() - start < timeout:
         if is_port_in_use(port):
@@ -84,7 +73,7 @@ def wait_for_server(port, timeout=15):
 
 def main():
     print("=" * 60)
-    print("  STUDYVERSE — SPACE-INSPIRED STUDENT WORKSPACE")
+    print("  STUDYVERSE — STUDENT WORKSPACE")
     print("=" * 60)
 
     check_runtime()
@@ -113,7 +102,6 @@ def main():
             print(f"[WARN] Server launched, but port {PORT} did not respond within timeout.")
             print(f"You can try opening {URL} manually in your browser.\n")
 
-        # Keep parent process running until interrupted
         proc.wait()
     except KeyboardInterrupt:
         print("\n\nStopping StudyVerse server gracefully...")

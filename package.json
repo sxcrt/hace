@@ -1,7 +1,7 @@
 {
   "name": "studyverse",
   "version": "1.0.0",
-  "description": "Comprehensive student study platform",
+  "description": "All in one student platform",
   "main": "server.js",
   "scripts": {
     "dev": "node server.js",

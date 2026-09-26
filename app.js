@@ -1,26 +1,6 @@
-/**
- * StudyVerse — Minimalist Space-Inspired Student Workspace
- * Features:
- * - Authentic Astronomical Constellations (Orion, Ursa Major, Cassiopeia, Cygnus, Taurus, Canis Major with Sirius, etc.)
- * - 3D Multi-Plane Space Depth with Parallax & Twinkling
- * - Interactive Constellation Easter Egg with Stardust Glow & Star Identification
- * - Meteor Showers on Flashcard Streaks (10 in a row strictly on correct answers)
- * - Safe Blank Slate Workspace Reset with Display Name Confirmation
- * - Cross-Section Drag & Drop for Flashcard Decks and Notes with Hover Nav Switching
- * - Auto-Sorted Calendar Events by Time (Earliest First)
- * - Interactive Calendar Cells with Hover Affordance
- * - Custom Metric Widgets with Drag & Drop Reordering & Floating Dock Trigger
- * - Course Color Accent Customization
- * - Weighted Pomodoro Dial with Soft Ambient Glow
- * - Ghost / Phantom Slot Cards for Flashcards Studio
- */
-
 (function () {
     'use strict';
 
-    /* ==========================================================================
-       1. ASTRONOMICAL CONSTELLATION & 3D SPACE DEPTH ENGINE
-       ========================================================================== */
     const Constellations = {
         canvas: null,
         ctx: null,
@@ -66,14 +46,13 @@
             const w = this.width;
             const h = this.height;
 
-            // 1. Far Deep-Space Stars (Tiny, slow drift, faint twinkling)
             this.deepStars = [];
             const deepCount = Math.floor((w * h) / 6000);
             for (let i = 0; i < deepCount; i++) {
                 this.deepStars.push({
                     x: Math.random() * w,
                     y: Math.random() * h,
-                    depth: Math.random() * 0.4 + 0.1, // 0.1 to 0.5
+                    depth: Math.random() * 0.4 + 0.1, 
                     r: Math.random() * 0.9 + 0.4,
                     alpha: Math.random() * 0.35 + 0.15,
                     twinkleSpeed: Math.random() * 0.02 + 0.008,
@@ -83,14 +62,13 @@
                 });
             }
 
-            // 2. Mid-Field Ambient Stars
             this.stars = [];
             const midCount = Math.floor((w * h) / 12000);
             for (let i = 0; i < midCount; i++) {
                 this.stars.push({
                     x: Math.random() * w,
                     y: Math.random() * h,
-                    depth: Math.random() * 0.4 + 0.6, // 0.6 to 1.0
+                    depth: Math.random() * 0.4 + 0.6, 
                     r: Math.random() * 1.4 + 0.7,
                     alpha: Math.random() * 0.4 + 0.2,
                     vx: (Math.random() - 0.5) * 0.15,
@@ -100,14 +78,12 @@
                 });
             }
 
-            // 3. Authentic Astronomical Constellations with Distinct 3D Depths & Sizes
-            // Positioned scaled across the viewport with real relative star geometries
             this.constellationsData = [
                 {
                     name: "Orion",
                     latin: "The Hunter (with Betelgeuse & Rigel)",
                     center: { x: w * 0.18, y: h * 0.28 },
-                    depth: 1.35, // Foreground, large & prominent
+                    depth: 1.35, 
                     scale: Math.min(w, h) * 0.0022,
                     opacity: 0.9,
                     stars: [
@@ -128,7 +104,7 @@
                     name: "Ursa Major",
                     latin: "The Great Bear (Big Dipper)",
                     center: { x: w * 0.82, y: h * 0.24 },
-                    depth: 1.0, // Mid-distance
+                    depth: 1.0, 
                     scale: Math.min(w, h) * 0.0018,
                     opacity: 0.75,
                     stars: [
@@ -148,7 +124,7 @@
                     name: "Cassiopeia",
                     latin: "The Queen (W-Constellation)",
                     center: { x: w * 0.52, y: h * 0.16 },
-                    depth: 0.55, // Distant deep space, smaller & delicate
+                    depth: 0.55, 
                     scale: Math.min(w, h) * 0.0012,
                     opacity: 0.5,
                     stars: [
@@ -166,7 +142,7 @@
                     name: "Cygnus",
                     latin: "The Northern Cross (with Deneb & Albireo)",
                     center: { x: w * 0.74, y: h * 0.75 },
-                    depth: 0.8, // Mid-far plane
+                    depth: 0.8, 
                     scale: Math.min(w, h) * 0.0015,
                     opacity: 0.65,
                     stars: [
@@ -184,7 +160,7 @@
                     name: "Canis Major",
                     latin: "Home of Sirius, the Brightest Star",
                     center: { x: w * 0.16, y: h * 0.78 },
-                    depth: 1.45, // Nearest foreground anchor
+                    depth: 1.45, 
                     scale: Math.min(w, h) * 0.0022,
                     opacity: 0.95,
                     stars: [
@@ -203,7 +179,7 @@
                     name: "Taurus & Pleiades",
                     latin: "The Bull (with Red Giant Aldebaran)",
                     center: { x: w * 0.44, y: h * 0.82 },
-                    depth: 0.65, // Distant cluster plane
+                    depth: 0.65, 
                     scale: Math.min(w, h) * 0.0013,
                     opacity: 0.58,
                     stars: [
@@ -254,7 +230,6 @@
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             ctx.clearRect(0, 0, this.width, this.height);
 
-            // Subtle Frosted Ambient Space Wash (Prevents visual distraction)
             const bgGrad = ctx.createRadialGradient(
                 this.width * 0.5, this.height * 0.4, 100,
                 this.width * 0.5, this.height * 0.5, Math.max(this.width, this.height) * 0.8
@@ -269,7 +244,6 @@
             ctx.fillStyle = bgGrad;
             ctx.fillRect(0, 0, this.width, this.height);
 
-            // Smooth parallax interpolation
             this.mouse.currentX += (this.mouse.targetX - this.mouse.currentX) * 0.08;
             this.mouse.currentY += (this.mouse.targetY - this.mouse.currentY) * 0.08;
 
@@ -277,7 +251,6 @@
             const starBaseG = isDark ? 255 : 24;
             const starBaseB = isDark ? 255 : 27;
 
-            // 1. Render Far Deep-Space Stars (Depth plane 0)
             for (let i = 0; i < this.deepStars.length; i++) {
                 const s = this.deepStars[i];
                 s.twinklePhase += s.twinkleSpeed;
@@ -291,7 +264,6 @@
                 ctx.fill();
             }
 
-            // 2. Render Mid-Field Floating Stars
             for (let i = 0; i < this.stars.length; i++) {
                 const s = this.stars[i];
                 s.x += s.vx;
@@ -312,7 +284,6 @@
                 ctx.fill();
             }
 
-            // 3. Render Authentic Known Constellations with Multi-Plane Depths
             let hoveredConst = null;
 
             this.constellationsData.forEach((c) => {
@@ -322,12 +293,10 @@
                 const scale = c.scale || 1;
                 const baseOpacity = c.opacity || 0.8;
 
-                // Check mouse proximity to constellation center or stars for Easter Egg
                 const distToCenter = Math.hypot(this.mouse.x - cx, this.mouse.y - cy);
                 const isHovered = distToCenter < (120 * depth);
                 if (isHovered) hoveredConst = c;
 
-                // Draw Constellation Lines with depth-aware opacity
                 c.lines.forEach(([i1, i2]) => {
                     const st1 = c.stars[i1];
                     const st2 = c.stars[i2];
@@ -350,13 +319,11 @@
                     ctx.stroke();
                 });
 
-                // Draw Constellation Stars & Radiant Halos
                 c.stars.forEach((st) => {
                     const sx = cx + st.ox * scale;
                     const sy = cy + st.oy * scale;
                     const starRadius = st.r * Math.min(1.25, Math.max(0.7, depth * 0.9));
 
-                    // Radiant outer glow for major stars
                     if (st.bright || isHovered) {
                         const haloRadius = starRadius * (isHovered ? 4.5 : 3.0);
                         ctx.beginPath();
@@ -376,7 +343,6 @@
                         ctx.fill();
                     }
 
-                    // Main Star Body
                     ctx.beginPath();
                     ctx.arc(sx, sy, starRadius * (isHovered ? 1.2 : 1), 0, Math.PI * 2);
                     if (st.color === 'orange') {
@@ -389,7 +355,6 @@
                     ctx.fill();
                 });
 
-                // Easter Egg Label Render when near constellation
                 if (isHovered) {
                     ctx.save();
                     ctx.font = '600 11px Plus Jakarta Sans, sans-serif';
@@ -403,14 +368,12 @@
                 }
             });
 
-            // 4. Periodic Shooting Stars
             const now = Date.now();
             if (now - this.lastMeteorTime > 4000 && Math.random() < 0.38) {
                 this.spawnMeteor();
                 this.lastMeteorTime = now;
             }
 
-            // 5. Render Meteors / Shooting Stars
             for (let i = this.meteors.length - 1; i >= 0; i--) {
                 const m = this.meteors[i];
                 m.x += m.vx;
@@ -443,9 +406,6 @@
         }
     };
 
-    /* ==========================================================================
-       2. USER DATA STORE & PERSISTENCE
-       ========================================================================== */
     const Store = {
         uid: null,
         data: {
@@ -505,7 +465,6 @@
             };
             this.data.metrics = this.data.metrics || [];
 
-            // Check and update study streak
             const today = new Date().toISOString().split('T')[0];
             if (this.data.profile.lastActiveDate !== today) {
                 const last = new Date(this.data.profile.lastActiveDate || today);
@@ -625,7 +584,6 @@
             localStorage.removeItem('studyverse_user_data');
             localStorage.removeItem('studyverse_pomodoro_state');
 
-            // Reset local in-memory state cleanly
             this.data = {
                 uid: this.uid,
                 profile: {
@@ -651,7 +609,6 @@
             const modal = document.getElementById('resetConfirmModal');
             if (modal) modal.classList.remove('show');
 
-            // Refresh all components
             Dashboard.render();
             Flashcards.renderDecksList();
             Tasks.render();
@@ -664,9 +621,6 @@
         }
     };
 
-    /* ==========================================================================
-       3. PROFILE MODAL (EDIT NAME & PFP)
-       ========================================================================== */
     const ProfileModal = {
         selectedPreset: 'star',
         uploadedDataUrl: null,
@@ -723,9 +677,6 @@
         }
     };
 
-    /* ==========================================================================
-       4. DASHBOARD & DRAGGABLE CUSTOM METRIC WIDGETS
-       ========================================================================== */
     const Dashboard = {
         draggedMetricId: null,
 
@@ -819,7 +770,6 @@
         render() {
             Store.updateProfileUI();
 
-            // 1. Metric: Study Streak
             const streakCountEl = document.getElementById('dashMetricStreak');
             if (streakCountEl) {
                 const st = Store.data.profile.streak || 1;
@@ -827,12 +777,10 @@
                 streakCountEl.classList.add('highlight-orange');
             }
 
-            // 2. Metric: Focus Time Today
             const pomoMins = Store.data.pomodoro?.totalFocusMinutes || 0;
             const focusTimeEl = document.getElementById('dashMetricFocus');
             if (focusTimeEl) focusTimeEl.textContent = `${pomoMins} min`;
 
-            // 3. Metric: Flashcard Mastery
             const decks = Store.data.decks || [];
             let totalCards = 0;
             let masteredCards = 0;
@@ -844,14 +792,12 @@
             const cardAccuracyEl = document.getElementById('dashMetricAccuracy');
             if (cardAccuracyEl) cardAccuracyEl.textContent = `${accuracyPct}%`;
 
-            // 4. Metric: Task Completion
             const tasks = Store.data.tasks || [];
             const completedCount = tasks.filter(t => t.completed).length;
             const taskRate = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
             const taskRateEl = document.getElementById('dashMetricTasks');
             if (taskRateEl) taskRateEl.textContent = `${completedCount} / ${tasks.length}`;
 
-            // Weekly Study Velocity Bars
             const velocityDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const todayIndex = new Date().getDay();
             const barsWrap = document.getElementById('velocityBarsWrap');
@@ -868,7 +814,6 @@
                 }).join('');
             }
 
-            // Custom Metrics Section (Hidden if empty, phone-widget style)
             const metricsSection = document.getElementById('customMetricsSection');
             const customGrid = document.getElementById('customMetricsGrid');
             const metrics = Store.data.metrics || [];
@@ -908,7 +853,6 @@
                 }).join('');
             }
 
-            // Overview previews
             const todayTasks = tasks.filter(t => t.isToday && !t.completed);
             const taskPreview = document.getElementById('dashTodayTasksList');
             if (taskPreview) {
@@ -949,9 +893,6 @@
         }
     };
 
-    /* ==========================================================================
-       5. CONTINUOUS POMODORO TIMER
-       ========================================================================== */
     const Pomodoro = {
         mode: 'focus',
         durations: { focus: 25 * 60, deep: 50 * 60, shortBreak: 5 * 60, longBreak: 15 * 60 },
@@ -1154,9 +1095,6 @@
         }
     };
 
-    /* ==========================================================================
-       6. FLASHCARDS STUDIO (ANKI PRACTICE + METEOR SHOWER STRICT COMBO)
-       ========================================================================== */
     const Flashcards = {
         activeTab: 'generator',
         extractedText: '',
@@ -1411,14 +1349,13 @@
                 `;
             }).join('');
 
-            // Always render 1 to 2 Ghost / Phantom Deck Cards to invite filling slots
             const ghostSlotsCount = decks.length === 0 ? 3 : (decks.length < 3 ? 2 : 1);
             for (let i = 0; i < ghostSlotsCount; i++) {
                 html += `
                     <div class="ghost-deck-card" onclick="window.StudyVerse.Flashcards.switchTab('generator')">
                         <div class="ghost-deck-icon">+</div>
                         <div style="font-weight:600; font-size:0.88rem;">New Deck Slot</div>
-                        <div style="font-size:0.75rem; color:var(--text-muted);">Click to generate with AI or paste notes</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Click to generate flashcards or paste notes</div>
                     </div>
                 `;
             }
@@ -1450,7 +1387,7 @@
             this.currentPracticeDeck = deck;
             this.currentCardIndex = 0;
             this.isFlipped = false;
-            this.consecutiveCorrectStreak = 0; // Strict streak reset on practice start
+            this.consecutiveCorrectStreak = 0; 
 
             this.switchTab('practice');
             document.getElementById('ankiPracticeScreen').style.display = 'block';
@@ -1494,7 +1431,6 @@
             const cardNum = document.getElementById('ankiCardIndexNum');
             if (cardNum) cardNum.textContent = `${this.currentCardIndex + 1} / ${deck.cards.length}`;
 
-            // Update streak pill
             const streakPill = document.getElementById('ankiCardStreakPill');
             if (streakPill) {
                 streakPill.textContent = `${this.consecutiveCorrectStreak} in a row`;
@@ -1521,12 +1457,11 @@
             card.interval = card.interval || 0;
             card.easeFactor = card.easeFactor || 2.5;
 
-            // BUG FIX: If rating is 'again' (wrong answer), STRICTLY reset combo streak to 0
             if (rating === 'again') {
                 card.repetitions = 0;
                 card.interval = 1;
-                deck.cards.push(card); // Re-queue card for end of session
-                this.consecutiveCorrectStreak = 0; // Strict combo reset
+                deck.cards.push(card); 
+                this.consecutiveCorrectStreak = 0; 
             } else if (rating === 'hard') {
                 card.interval = Math.max(1, Math.round((card.interval || 1) * 1.2));
                 this.consecutiveCorrectStreak++;
@@ -1540,7 +1475,6 @@
                 this.consecutiveCorrectStreak++;
             }
 
-            // TRIGGER METEOR SHOWER STRICTLY AT 10 CONSECUTIVE CORRECT ANSWERS
             if (this.consecutiveCorrectStreak === 10 || (this.consecutiveCorrectStreak > 10 && this.consecutiveCorrectStreak % 10 === 0)) {
                 Constellations.triggerMeteorShower(26);
             }
@@ -1564,9 +1498,46 @@
         }
     };
 
-    /* ==========================================================================
-       7. STREAMLINED TASKS ENGINE
-       ========================================================================== */
+    function formatTime12h(timeStr) {
+        if (!timeStr) return '';
+        const parts = timeStr.split(':');
+        if (parts.length < 2) return timeStr;
+        let hours = parseInt(parts[0], 10);
+        const minutes = parts[1];
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        return `${hours}:${minutes} ${ampm}`;
+    }
+
+    function formatTaskDateAndTime(dateStr, timeStr, isToday) {
+        if (!dateStr && !timeStr) {
+            return isToday ? 'Today' : '';
+        }
+        let datePart = '';
+        if (dateStr) {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+            if (dateStr === todayStr) {
+                datePart = 'Today';
+            } else if (dateStr === tomorrowStr) {
+                datePart = 'Tomorrow';
+            } else {
+                const d = new Date(dateStr + 'T00:00:00');
+                datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+        } else if (isToday) {
+            datePart = 'Today';
+        }
+
+        const timePart = timeStr ? formatTime12h(timeStr) : '';
+        if (datePart && timePart) return `${datePart} · ${timePart}`;
+        return datePart || timePart;
+    }
+
     const Tasks = {
         isTodaySelected: false,
 
@@ -1584,6 +1555,10 @@
                 todayChip.addEventListener('click', () => {
                     this.isTodaySelected = !this.isTodaySelected;
                     todayChip.classList.toggle('active', this.isTodaySelected);
+                    const dateInput = document.getElementById('taskDueDateInput');
+                    if (this.isTodaySelected && dateInput && !dateInput.value) {
+                        dateInput.value = new Date().toISOString().split('T')[0];
+                    }
                 });
             }
 
@@ -1601,13 +1576,25 @@
             if (!title) return;
 
             const priority = document.getElementById('taskPrioritySelect')?.value || 'medium';
-            const dateVal = document.getElementById('taskDueDateInput')?.value || null;
+            let dateVal = document.getElementById('taskDueDateInput')?.value || null;
+            const timeVal = document.getElementById('taskDueTimeInput')?.value || null;
+            const courseVal = document.getElementById('taskCourseSelect')?.value || null;
+            const subtextVal = (document.getElementById('taskSubtextInput')?.value || '').trim();
+
+            if (!dateVal && this.isTodaySelected) {
+                dateVal = new Date().toISOString().split('T')[0];
+            } else if (!dateVal && timeVal) {
+                dateVal = new Date().toISOString().split('T')[0];
+            }
 
             const newTask = {
                 id: `task_${Date.now()}`,
                 title: title,
-                isToday: this.isTodaySelected || (!dateVal),
+                isToday: this.isTodaySelected || (dateVal === new Date().toISOString().split('T')[0]),
                 dueDate: dateVal,
+                dueTime: timeVal,
+                courseId: courseVal || null,
+                subtext: subtextVal || null,
                 priority: priority,
                 completed: false,
                 subtasks: [],
@@ -1619,8 +1606,13 @@
             Store.save();
 
             input.value = '';
+            const subtextInput = document.getElementById('taskSubtextInput');
+            if (subtextInput) subtextInput.value = '';
+
             this.render();
             Dashboard.render();
+            Calendar.render();
+            Toast.show("Task created");
         },
 
         toggleTask(id) {
@@ -1630,6 +1622,7 @@
             Store.save();
             this.render();
             Dashboard.render();
+            Calendar.render();
         },
 
         deleteTask(id) {
@@ -1637,6 +1630,7 @@
             Store.save();
             this.render();
             Dashboard.render();
+            Calendar.render();
         },
 
         addSubtask(taskId, inputEl) {
@@ -1673,6 +1667,15 @@
 
         render() {
             const listEl = document.getElementById('tasksList');
+            const courseSelect = document.getElementById('taskCourseSelect');
+            if (courseSelect) {
+                const currentVal = courseSelect.value;
+                const courses = Store.data.courses || [];
+                courseSelect.innerHTML = `<option value="">No Course (General)</option>` +
+                    courses.map(c => `<option value="${c.id}">${escapeHtml(c.code)} - ${escapeHtml(c.title)}</option>`).join('');
+                courseSelect.value = currentVal || '';
+            }
+
             if (!listEl) return;
 
             const tasks = Store.data.tasks || [];
@@ -1686,8 +1689,9 @@
                 return;
             }
 
-            const todayTasks = tasks.filter(t => t.isToday && !t.completed);
-            const otherTasks = tasks.filter(t => !t.isToday && !t.completed);
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayTasks = tasks.filter(t => (t.isToday || t.dueDate === todayStr) && !t.completed);
+            const otherTasks = tasks.filter(t => (!t.isToday && t.dueDate !== todayStr) && !t.completed);
             const completedTasks = tasks.filter(t => t.completed);
 
             let html = '';
@@ -1713,19 +1717,39 @@
         renderTaskItem(t) {
             const subs = t.subtasks || [];
             const completedSubs = subs.filter(s => s.completed).length;
+            const course = (Store.data.courses || []).find(c => c.id === t.courseId);
+            const dateTimeLabel = formatTaskDateAndTime(t.dueDate, t.dueTime, t.isToday);
+
+            const isToday = t.isToday || (t.dueDate === new Date().toISOString().split('T')[0]);
+            const isOverdue = t.dueDate && !t.completed && (t.dueDate < new Date().toISOString().split('T')[0]);
 
             return `
                 <div class="task-item-group">
                     <div class="task-row-main">
-                        <div style="display:flex; align-items:center; gap:10px; flex:1;">
-                            <div class="task-check ${t.completed ? 'checked' : ''}" onclick="window.StudyVerse.Tasks.toggleTask('${t.id}')">
+                        <div style="display:flex; align-items:flex-start; gap:10px; flex:1;">
+                            <div class="task-check ${t.completed ? 'checked' : ''}" style="margin-top:2px;" onclick="window.StudyVerse.Tasks.toggleTask('${t.id}')">
                                 ${t.completed ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
                             </div>
-                            <span style="font-size:0.88rem; font-weight:500; ${t.completed ? 'text-decoration:line-through; color:var(--text-dim);' : ''}">${escapeHtml(t.title)}</span>
+                            <div class="task-content-block">
+                                <div class="task-title-line">
+                                    <span style="font-size:0.9rem; font-weight:600; ${t.completed ? 'text-decoration:line-through; color:var(--text-dim);' : 'color:var(--text-primary);'}">
+                                        ${escapeHtml(t.title)}
+                                    </span>
+                                    ${course ? `<span class="task-course-chip">${escapeHtml(course.code)}</span>` : ''}
+                                </div>
+                                ${t.subtext ? `<div class="task-subtext" style="${t.completed ? 'text-decoration:line-through; color:var(--text-dim);' : ''}">${escapeHtml(t.subtext)}</div>` : ''}
+                            </div>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px; font-size:0.75rem; color:var(--text-muted);">
-                            ${subs.length > 0 ? `<span style="font-family:var(--font-mono);">${completedSubs}/${subs.length} sub</span>` : ''}
-                            ${t.isToday ? `<span style="color:var(--sv-orange); font-weight:700;">Today</span>` : ''}
+                            ${dateTimeLabel ? `
+                                <span class="task-due-badge ${isOverdue ? 'overdue' : (isToday ? 'today' : '')}">
+                                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                    ${dateTimeLabel}
+                                </span>
+                            ` : ''}
+                            ${subs.length > 0 ? `<span style="font-family:var(--font-mono); font-size:0.72rem;">${completedSubs}/${subs.length}</span>` : ''}
                             <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Tasks.deleteTask('${t.id}')">&times;</button>
                         </div>
                     </div>
@@ -1754,9 +1778,6 @@
         }
     };
 
-    /* ==========================================================================
-       8. NOTES ENGINE (DRAGGABLE NOTES & EMPTY STATE HEADLINE)
-       ========================================================================== */
     const Notes = {
         selectedNoteId: null,
 
@@ -1873,7 +1894,6 @@
                     courses.map(c => `<option value="${c.id}">${escapeHtml(c.code)} - ${escapeHtml(c.title)}</option>`).join('');
             }
 
-            // Clear, elegant empty state when there are no notes
             if (notes.length === 0) {
                 if (listEl) {
                     listEl.innerHTML = `
@@ -1926,9 +1946,6 @@
         }
     };
 
-    /* ==========================================================================
-       9. FUNCTIONAL CALENDAR (AUTO-SORTED CHRONOLOGICALLY BY TIME)
-       ========================================================================== */
     const Calendar = {
         viewMode: 'month',
         currentMonth: new Date().getMonth(),
@@ -1979,18 +1996,36 @@
             if (saveEventBtn) saveEventBtn.addEventListener('click', () => this.saveEventFromModal());
         },
 
-        // Sort events chronologically by start time (earliest first)
         getSortedEvents(dateFilter = null) {
-            let list = Store.data.events || [];
+            let list = (Store.data.events || []).map(e => ({ ...e, isTask: false }));
+
+            const tasksWithDeadline = (Store.data.tasks || []).filter(t => t.dueDate);
+            tasksWithDeadline.forEach(t => {
+                const course = (Store.data.courses || []).find(c => c.id === t.courseId);
+                const tag = course ? course.code : (t.priority === 'high' ? 'High Priority' : 'Assignment');
+                const timeStr = t.dueTime ? formatTime12h(t.dueTime) : 'Deadline';
+                list.push({
+                    id: `task_evt_${t.id}`,
+                    isTask: true,
+                    taskId: t.id,
+                    completed: t.completed,
+                    date: t.dueDate,
+                    title: t.title,
+                    time: timeStr,
+                    tag: tag,
+                    desc: t.subtext || (t.completed ? 'Completed task' : 'Task deadline')
+                });
+            });
+
             if (dateFilter) {
                 list = list.filter(e => e.date === dateFilter);
             }
 
             return list.slice().sort((a, b) => {
                 const parseTimeScore = (tStr) => {
-                    if (!tStr || tStr.toLowerCase() === 'all day') return -1;
+                    if (!tStr || tStr.toLowerCase() === 'all day' || tStr.toLowerCase() === 'deadline') return 999;
                     const match = tStr.match(/(\d{1,2}):(\d{2})/);
-                    if (!match) return 9999;
+                    if (!match) return 999;
                     return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
                 };
                 const scoreA = parseTimeScore(a.time);
@@ -2032,9 +2067,16 @@
 
             listEl.innerHTML = events.map(e => `
                 <div class="card" style="padding:10px 12px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div>
+                    <div style="flex:1;">
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-weight:700; font-size:0.9rem; color:var(--text-primary);">${escapeHtml(e.title)}</span>
+                            ${e.isTask ? `
+                                <div class="task-check ${e.completed ? 'checked' : ''}" style="width:14px; height:14px; margin-right:2px;" onclick="window.StudyVerse.Tasks.toggleTask('${e.taskId}')">
+                                    ${e.completed ? `<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
+                                </div>
+                            ` : ''}
+                            <span style="font-weight:700; font-size:0.9rem; color:var(--text-primary); ${e.completed ? 'text-decoration:line-through; opacity:0.6;' : ''}">
+                                ${escapeHtml(e.title)}
+                            </span>
                             <span style="font-size:0.7rem; font-weight:700; padding:1px 6px; border-radius:4px; background:var(--sv-orange-light); color:var(--sv-orange);">
                                 ${escapeHtml(e.tag || 'General')}
                             </span>
@@ -2085,6 +2127,13 @@
         },
 
         deleteEvent(id) {
+            if (id && id.startsWith('task_evt_')) {
+                const taskId = id.replace('task_evt_', '');
+                Tasks.deleteTask(taskId);
+                this.renderInspectorEventsList();
+                this.render();
+                return;
+            }
             Store.data.events = (Store.data.events || []).filter(e => e.id !== id);
             Store.save();
             this.renderInspectorEventsList();
@@ -2162,7 +2211,7 @@
 
                 const dateKey = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
                 const isToday = today.toDateString() === dayDate.toDateString();
-                const dayEvents = this.getSortedEvents(dateKey); // Sorted chronologically
+                const dayEvents = this.getSortedEvents(dateKey); 
 
                 html += `
                     <div class="week-col" onclick="window.StudyVerse.Calendar.openInspector('${dateKey}')">
@@ -2185,9 +2234,6 @@
         }
     };
 
-    /* ==========================================================================
-       10. COURSES ENGINE (COLOR ACCENTS & DRAG-AND-DROP EMBEDS)
-       ========================================================================== */
     const Courses = {
         selectedColor: 'orange',
 
@@ -2203,7 +2249,6 @@
             const saveBtn = document.getElementById('saveNewCourseBtn');
             if (saveBtn) saveBtn.addEventListener('click', () => this.saveNewCourse());
 
-            // Color Palette Selector in Add Course Modal
             document.querySelectorAll('#newCourseColorPalette .course-color-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('#newCourseColorPalette .course-color-btn').forEach(b => b.classList.remove('active'));
@@ -2415,9 +2460,6 @@
         }
     };
 
-    /* ==========================================================================
-       11. SPA ROUTER & PROFILE DROPDOWN WITH DRAG-HOVER SECTION SWITCHING
-       ========================================================================== */
     const Router = {
         dragHoverTimer: null,
 
@@ -2431,7 +2473,6 @@
                     this.navigate(btn.dataset.route);
                 });
 
-                // DRAG HOVER SECTION SWITCHING (Drag deck/note over nav item to switch section immediately)
                 btn.addEventListener('dragover', (e) => {
                     e.preventDefault();
                     btn.classList.add('drag-hover-target');
@@ -2499,7 +2540,6 @@
                 });
             }
 
-            // Reset Confirmation Modal Live Typing Validation
             const resetInput = document.getElementById('resetConfirmInput');
             const executeResetBtn = document.getElementById('executeResetBtn');
             if (resetInput && executeResetBtn) {
@@ -2511,7 +2551,6 @@
                 executeResetBtn.addEventListener('click', () => Store.executeReset());
             }
 
-            // PFP Preset Selector in modal
             document.querySelectorAll('.pfp-preset-opt').forEach(opt => {
                 opt.addEventListener('click', () => {
                     document.querySelectorAll('.pfp-preset-opt').forEach(o => o.classList.remove('active'));
@@ -2559,7 +2598,6 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
 
-            // Only show floating custom metric widget button when viewing the dashboard
             const floatingWidgetWrap = document.getElementById('floatingAddWidgetWrap');
             if (floatingWidgetWrap) {
                 floatingWidgetWrap.style.display = (route === 'dashboard') ? 'block' : 'none';
@@ -2575,9 +2613,6 @@
         }
     };
 
-    /* ==========================================================================
-       12. TOAST NOTICES
-       ========================================================================== */
     const Toast = {
         timer: null,
         show(msg) {
@@ -2601,9 +2636,6 @@
             .replace(/'/g, '&#039;');
     }
 
-    /* ==========================================================================
-       13. BOOTSTRAP
-       ========================================================================== */
     document.addEventListener('DOMContentLoaded', async () => {
         Constellations.init();
         await Store.init();
