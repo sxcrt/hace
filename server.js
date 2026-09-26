@@ -52,7 +52,7 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 const COOKIE_NAME = "studyverse_uid";
 app.use((req, res, next) => {
-    let uid = req.cookies[COOKIE_NAME];
+    let uid = req.header("x-studyverse-uid") || req.cookies[COOKIE_NAME];
     if (!uid || typeof uid !== "string" || !/^sv_usr_[a-zA-Z0-9_-]+$/.test(uid)) {
         uid = `sv_usr_${Date.now()}_${crypto.randomBytes(6).toString("hex")}`;
         res.cookie(COOKIE_NAME, uid, {
@@ -64,6 +64,7 @@ app.use((req, res, next) => {
         req.cookies[COOKIE_NAME] = uid;
     }
     req.studyverseUid = uid;
+    res.setHeader("x-studyverse-uid", uid);
     next();
 });
 
@@ -255,6 +256,220 @@ app.post("/api/user-data/reset", (req, res) => {
     };
     writeUserData(uid, blank);
     res.json({ success: true, message: "Workspace reset to blank slate", data: blank });
+});
+
+app.post("/api/user-data/link-email", (req, res) => {
+    const currentUid = req.studyverseUid;
+    const { email, passphrase } = req.body || {};
+    
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+        return res.status(400).json({ success: false, error: "A valid email address is required." });
+    }
+    if (!passphrase || typeof passphrase !== "string" || passphrase.trim().length < 4) {
+        return res.status(400).json({ success: false, error: "A security phrase of at least 4 characters is required." });
+    }
+    
+    const emailSanitized = email.trim().toLowerCase().replace(/[^a-z0-9@_.-]/g, "");
+    const emailHash = crypto.createHash("sha256").update(emailSanitized).digest("hex").slice(0, 16);
+    const newUid = `sv_usr_email_${emailHash}`;
+    
+    const currentData = readUserData(currentUid);
+    let targetData = null;
+    const targetFilePath = getUserFilePath(newUid);
+    const providedHash = crypto.createHash("sha256").update(passphrase.trim()).digest("hex");
+    
+    if (fs.existsSync(targetFilePath)) {
+        targetData = readUserData(newUid);
+        
+        // Validate password/phrase
+        const savedHash = targetData.profile?.passphraseHash;
+        if (savedHash && savedHash !== providedHash) {
+            return res.status(403).json({ 
+                success: false, 
+                error: "Incorrect security phrase. This account is locked under a different passcode to prevent griefing." 
+            });
+        }
+        
+        // Smart merge notes
+        const existingNotes = targetData.notes || [];
+        const currentNotes = currentData.notes || [];
+        currentNotes.forEach(note => {
+            if (!existingNotes.some(n => n.id === note.id || n.title.toLowerCase() === note.title.toLowerCase())) {
+                existingNotes.unshift(note);
+            }
+        });
+        targetData.notes = existingNotes;
+        
+        // Smart merge decks
+        const existingDecks = targetData.decks || [];
+        const currentDecks = currentData.decks || [];
+        currentDecks.forEach(deck => {
+            if (!existingDecks.some(d => d.id === deck.id || d.title.toLowerCase() === deck.title.toLowerCase())) {
+                existingDecks.unshift(deck);
+            }
+        });
+        targetData.decks = existingDecks;
+        
+        // Smart merge tasks
+        const existingTasks = targetData.tasks || [];
+        const currentTasks = currentData.tasks || [];
+        currentTasks.forEach(task => {
+            if (!existingTasks.some(t => t.id === task.id || t.title.toLowerCase() === task.title.toLowerCase())) {
+                existingTasks.unshift(task);
+            }
+        });
+        targetData.tasks = existingTasks;
+        
+        // Smart merge calendar events
+        const existingEvents = targetData.events || [];
+        const currentEvents = currentData.events || [];
+        currentEvents.forEach(evt => {
+            if (!existingEvents.some(e => e.id === evt.id || (e.title.toLowerCase() === evt.title.toLowerCase() && e.date === evt.date))) {
+                existingEvents.push(evt);
+            }
+        });
+        targetData.events = existingEvents;
+
+        // Smart merge courses
+        const existingCourses = targetData.courses || [];
+        const currentCourses = currentData.courses || [];
+        currentCourses.forEach(c => {
+            if (!existingCourses.some(ec => ec.id === c.id || ec.code === c.code)) {
+                existingCourses.push(c);
+            }
+        });
+        targetData.courses = existingCourses;
+
+        // Update profile passphrase hash if missing
+        if (!targetData.profile) targetData.profile = {};
+        targetData.profile.passphraseHash = providedHash;
+    } else {
+        targetData = {
+            ...currentData,
+            uid: newUid,
+            profile: {
+                ...currentData.profile,
+                email: emailSanitized,
+                passphraseHash: providedHash,
+                username: currentData.profile?.username || "Scholar"
+            },
+            linkedAt: new Date().toISOString()
+        };
+    }
+    
+    writeUserData(newUid, targetData);
+    
+    res.cookie(COOKIE_NAME, newUid, {
+        maxAge: 365 * 24 * 60 * 60 * 1000,
+        httpOnly: false,
+        sameSite: "lax",
+        path: "/"
+    });
+    
+    res.json({
+        success: true,
+        uid: newUid,
+        data: targetData,
+        message: `Successfully linked account to ${emailSanitized}`
+    });
+});
+
+app.post("/api/user-data/link-classroom", (req, res) => {
+    const currentUid = req.studyverseUid;
+    const { email, displayName } = req.body || {};
+    
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+        return res.status(400).json({ success: false, error: "A valid email address is required." });
+    }
+    
+    const emailSanitized = email.trim().toLowerCase().replace(/[^a-z0-9@_.-]/g, "");
+    const emailHash = crypto.createHash("sha256").update(emailSanitized).digest("hex").slice(0, 16);
+    const newUid = `sv_usr_email_${emailHash}`;
+    
+    const currentData = readUserData(currentUid);
+    let targetData = null;
+    const targetFilePath = getUserFilePath(newUid);
+    
+    if (fs.existsSync(targetFilePath)) {
+        targetData = readUserData(newUid);
+        
+        // Smart merge notes
+        const existingNotes = targetData.notes || [];
+        const currentNotes = currentData.notes || [];
+        currentNotes.forEach(note => {
+            if (!existingNotes.some(n => n.id === note.id || n.title.toLowerCase() === note.title.toLowerCase())) {
+                existingNotes.unshift(note);
+            }
+        });
+        targetData.notes = existingNotes;
+        
+        // Smart merge decks
+        const existingDecks = targetData.decks || [];
+        const currentDecks = currentData.decks || [];
+        currentDecks.forEach(deck => {
+            if (!existingDecks.some(d => d.id === deck.id || d.title.toLowerCase() === deck.title.toLowerCase())) {
+                existingDecks.unshift(deck);
+            }
+        });
+        targetData.decks = existingDecks;
+        
+        // Smart merge tasks
+        const existingTasks = targetData.tasks || [];
+        const currentTasks = currentData.tasks || [];
+        currentTasks.forEach(task => {
+            if (!existingTasks.some(t => t.id === task.id || t.title.toLowerCase() === task.title.toLowerCase())) {
+                existingTasks.unshift(task);
+            }
+        });
+        targetData.tasks = existingTasks;
+        
+        // Smart merge calendar events
+        const existingEvents = targetData.events || [];
+        const currentEvents = currentData.events || [];
+        currentEvents.forEach(evt => {
+            if (!existingEvents.some(e => e.id === evt.id || (e.title.toLowerCase() === evt.title.toLowerCase() && e.date === evt.date))) {
+                existingEvents.push(evt);
+            }
+        });
+        targetData.events = existingEvents;
+
+        // Smart merge courses
+        const existingCourses = targetData.courses || [];
+        const currentCourses = currentData.courses || [];
+        currentCourses.forEach(c => {
+            if (!existingCourses.some(ec => ec.id === c.id || ec.code === c.code)) {
+                existingCourses.push(c);
+            }
+        });
+        targetData.courses = existingCourses;
+    } else {
+        targetData = {
+            ...currentData,
+            uid: newUid,
+            profile: {
+                ...currentData.profile,
+                email: emailSanitized,
+                username: displayName || currentData.profile?.username || "Scholar"
+            },
+            linkedAt: new Date().toISOString()
+        };
+    }
+    
+    writeUserData(newUid, targetData);
+    
+    res.cookie(COOKIE_NAME, newUid, {
+        maxAge: 365 * 24 * 60 * 60 * 1000,
+        httpOnly: false,
+        sameSite: "lax",
+        path: "/"
+    });
+    
+    res.json({
+        success: true,
+        uid: newUid,
+        data: targetData,
+        message: `Successfully connected & backed up StudyVerse to school account ${emailSanitized}`
+    });
 });
 
 app.get("/api/classroom/data", (req, res) => {

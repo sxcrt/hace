@@ -45,9 +45,10 @@
         setupSpaceField() {
             const w = this.width;
             const h = this.height;
+            const isMobile = window.innerWidth <= 900;
 
             this.deepStars = [];
-            const deepCount = Math.floor((w * h) / 6000);
+            const deepCount = Math.floor((w * h) / (isMobile ? 24000 : 6000));
             for (let i = 0; i < deepCount; i++) {
                 this.deepStars.push({
                     x: Math.random() * w,
@@ -63,7 +64,7 @@
             }
 
             this.stars = [];
-            const midCount = Math.floor((w * h) / 12000);
+            const midCount = Math.floor((w * h) / (isMobile ? 48000 : 12000));
             for (let i = 0; i < midCount; i++) {
                 this.stars.push({
                     x: Math.random() * w,
@@ -82,10 +83,10 @@
                 {
                     name: "Orion",
                     latin: "The Hunter (with Betelgeuse & Rigel)",
-                    center: { x: w * 0.18, y: h * 0.28 },
+                    center: { x: isMobile ? (w * 0.12) : (w * 0.18), y: isMobile ? (h * 0.22) : (h * 0.28) },
                     depth: 1.35, 
-                    scale: Math.min(w, h) * 0.0022,
-                    opacity: 0.9,
+                    scale: Math.min(w, h) * (isMobile ? 0.0015 : 0.0022),
+                    opacity: isMobile ? 0.5 : 0.9,
                     stars: [
                         { name: "Betelgeuse", ox: -35, oy: -55, r: 3.4, bright: true, color: "orange" },
                         { name: "Bellatrix", ox: 32, oy: -50, r: 2.6, bright: true },
@@ -103,10 +104,10 @@
                 {
                     name: "Ursa Major",
                     latin: "The Great Bear (Big Dipper)",
-                    center: { x: w * 0.82, y: h * 0.24 },
+                    center: { x: isMobile ? (w * 0.88) : (w * 0.82), y: isMobile ? (h * 0.22) : (h * 0.24) },
                     depth: 1.0, 
-                    scale: Math.min(w, h) * 0.0018,
-                    opacity: 0.75,
+                    scale: Math.min(w, h) * (isMobile ? 0.0012 : 0.0018),
+                    opacity: isMobile ? 0.45 : 0.75,
                     stars: [
                         { name: "Dubhe", ox: 40, oy: -35, r: 2.7, bright: true },
                         { name: "Merak", ox: 42, oy: 15, r: 2.5, bright: true },
@@ -123,10 +124,10 @@
                 {
                     name: "Cassiopeia",
                     latin: "The Queen (W-Constellation)",
-                    center: { x: w * 0.52, y: h * 0.16 },
+                    center: { x: isMobile ? (w * 0.12) : (w * 0.52), y: isMobile ? (h * 0.5) : (h * 0.16) },
                     depth: 0.55, 
-                    scale: Math.min(w, h) * 0.0012,
-                    opacity: 0.5,
+                    scale: Math.min(w, h) * (isMobile ? 0.0009 : 0.0012),
+                    opacity: isMobile ? 0.35 : 0.5,
                     stars: [
                         { name: "Caph", ox: -65, oy: 10, r: 2.2, bright: true },
                         { name: "Schedar", ox: -30, oy: -22, r: 2.5, bright: true, color: "orange" },
@@ -141,10 +142,10 @@
                 {
                     name: "Cygnus",
                     latin: "The Northern Cross (with Deneb & Albireo)",
-                    center: { x: w * 0.74, y: h * 0.75 },
+                    center: { x: isMobile ? (w * 0.88) : (w * 0.74), y: isMobile ? (h * 0.78) : (h * 0.75) },
                     depth: 0.8, 
-                    scale: Math.min(w, h) * 0.0015,
-                    opacity: 0.65,
+                    scale: Math.min(w, h) * (isMobile ? 0.0011 : 0.0015),
+                    opacity: isMobile ? 0.4 : 0.65,
                     stars: [
                         { name: "Deneb", ox: 0, oy: -55, r: 3.0, bright: true, color: "blue" },
                         { name: "Sadr", ox: 0, oy: 0, r: 2.4, bright: true },
@@ -159,10 +160,10 @@
                 {
                     name: "Canis Major",
                     latin: "Home of Sirius, the Brightest Star",
-                    center: { x: w * 0.16, y: h * 0.78 },
+                    center: { x: isMobile ? (w * 0.12) : (w * 0.16), y: isMobile ? (h * 0.78) : (h * 0.78) },
                     depth: 1.45, 
-                    scale: Math.min(w, h) * 0.0022,
-                    opacity: 0.95,
+                    scale: Math.min(w, h) * (isMobile ? 0.0015 : 0.0022),
+                    opacity: isMobile ? 0.5 : 0.9,
                     stars: [
                         { name: "Sirius", ox: 0, oy: -40, r: 4.4, bright: true, radiant: true, color: "blue" },
                         { name: "Mirzam", ox: -38, oy: -35, r: 2.7, bright: true },
@@ -178,10 +179,10 @@
                 {
                     name: "Taurus & Pleiades",
                     latin: "The Bull (with Red Giant Aldebaran)",
-                    center: { x: w * 0.44, y: h * 0.82 },
+                    center: { x: isMobile ? (w * 0.88) : (w * 0.44), y: isMobile ? (h * 0.5) : (h * 0.82) },
                     depth: 0.65, 
-                    scale: Math.min(w, h) * 0.0013,
-                    opacity: 0.58,
+                    scale: Math.min(w, h) * (isMobile ? 0.0009 : 0.0013),
+                    opacity: isMobile ? 0.38 : 0.58,
                     stars: [
                         { name: "Aldebaran", ox: -15, oy: 10, r: 3.3, bright: true, color: "orange" },
                         { name: "Elnath", ox: 45, oy: -45, r: 2.4, bright: true },
@@ -228,6 +229,7 @@
         animate() {
             const ctx = this.ctx;
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const isMobile = window.innerWidth <= 900;
             ctx.clearRect(0, 0, this.width, this.height);
 
             const bgGrad = ctx.createRadialGradient(
@@ -294,7 +296,7 @@
                 const baseOpacity = c.opacity || 0.8;
 
                 const distToCenter = Math.hypot(this.mouse.x - cx, this.mouse.y - cy);
-                const isHovered = distToCenter < (120 * depth);
+                const isHovered = (window.innerWidth > 1024) && (distToCenter < (120 * depth));
                 if (isHovered) hoveredConst = c;
 
                 c.lines.forEach(([i1, i2]) => {
@@ -312,7 +314,7 @@
                         ctx.strokeStyle = `rgba(232, 152, 60, ${isDark ? 0.55 : 0.4})`;
                         ctx.lineWidth = 1.4 * Math.min(1.2, depth);
                     } else {
-                        const lineAlpha = (isDark ? 0.18 : 0.1) * baseOpacity * depth;
+                        const lineAlpha = isMobile ? 0.05 : ((isDark ? 0.18 : 0.1) * baseOpacity * depth);
                         ctx.strokeStyle = `rgba(${starBaseR}, ${starBaseG}, ${starBaseB}, ${lineAlpha})`;
                         ctx.lineWidth = 0.85 * Math.min(1.1, depth);
                     }
@@ -324,7 +326,7 @@
                     const sy = cy + st.oy * scale;
                     const starRadius = st.r * Math.min(1.25, Math.max(0.7, depth * 0.9));
 
-                    if (st.bright || isHovered) {
+                    if ((st.bright || isHovered) && !isMobile) {
                         const haloRadius = starRadius * (isHovered ? 4.5 : 3.0);
                         ctx.beginPath();
                         ctx.arc(sx, sy, haloRadius, 0, Math.PI * 2);
@@ -445,14 +447,21 @@
         },
 
         async init() {
-            this.uid = this.getCookie('studyverse_uid');
+            this.uid = localStorage.getItem('studyverse_uid_local') || this.getCookie('studyverse_uid');
 
             try {
-                const res = await fetch('/api/user-data');
+                const res = await fetch('/api/user-data', {
+                    headers: {
+                        ...(this.uid ? { 'x-studyverse-uid': this.uid } : {})
+                    }
+                });
                 if (res.ok) {
                     const json = await res.json();
                     if (json.success && json.data) {
                         this.uid = json.uid || this.uid;
+                        if (this.uid) {
+                            localStorage.setItem('studyverse_uid_local', this.uid);
+                        }
                         this.data = { ...this.data, ...json.data };
                     }
                 }
@@ -544,10 +553,16 @@
 
         async save() {
             localStorage.setItem('studyverse_user_data', JSON.stringify(this.data));
+            if (this.uid) {
+                localStorage.setItem('studyverse_uid_local', this.uid);
+            }
             try {
                 await fetch('/api/user-data', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        ...(this.uid ? { 'x-studyverse-uid': this.uid } : {})
+                    },
                     body: JSON.stringify(this.data)
                 });
             } catch (e) {}
@@ -1680,7 +1695,7 @@
         return `${hours}:${minutes} ${ampm}`;
     }
 
-    function formatTaskDateAndTime(dateStr, timeStr, isToday) {
+    function formatTaskDateAndTime(dateStr, timeStr, isToday, showTime = true) {
         if (!dateStr && !timeStr) {
             return isToday ? 'Today' : '';
         }
@@ -1703,7 +1718,7 @@
             datePart = 'Today';
         }
 
-        const timePart = timeStr ? formatTime12h(timeStr) : '';
+        const timePart = showTime && timeStr ? formatTime12h(timeStr) : '';
         if (datePart && timePart) return `${datePart} · ${timePart}`;
         return datePart || timePart;
     }
@@ -1768,6 +1783,7 @@
                 priority: priority,
                 completed: false,
                 subtasks: [],
+                type: 'manual',
                 createdAt: new Date().toISOString()
             };
 
@@ -1862,7 +1878,7 @@
             const todayStr = new Date().toISOString().split('T')[0];
             const todayTasks = tasks.filter(t => (t.isToday || t.dueDate === todayStr) && !t.completed);
             const otherTasks = tasks.filter(t => (!t.isToday && t.dueDate !== todayStr) && !t.completed);
-            const completedTasks = tasks.filter(t => t.completed);
+            const completedTasks = tasks.filter(t => t.completed && !t.id.startsWith('cr_task_'));
 
             let html = '';
 
@@ -1888,7 +1904,7 @@
             const subs = t.subtasks || [];
             const completedSubs = subs.filter(s => s.completed).length;
             const course = (Store.data.courses || []).find(c => c.id === t.courseId);
-            const dateTimeLabel = formatTaskDateAndTime(t.dueDate, t.dueTime, t.isToday);
+            const dateTimeLabel = formatTaskDateAndTime(t.dueDate, t.dueTime, t.isToday, false);
 
             const isToday = t.isToday || (t.dueDate === new Date().toISOString().split('T')[0]);
             const isOverdue = t.dueDate && !t.completed && (t.dueDate < new Date().toISOString().split('T')[0]);
@@ -1907,7 +1923,6 @@
                                     </span>
                                     ${course ? `<span class="task-course-chip">${escapeHtml(course.code)}</span>` : ''}
                                 </div>
-                                ${t.subtext ? `<div class="task-subtext" style="${t.completed ? 'text-decoration:line-through; color:var(--text-dim);' : ''}">${escapeHtml(t.subtext)}</div>` : ''}
                             </div>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px; font-size:0.75rem; color:var(--text-muted);">
@@ -1989,6 +2004,7 @@
             Store.save();
 
             this.selectedNoteId = newNote.id;
+            document.querySelector('.notes-container')?.classList.add('show-editor');
             this.render();
         },
 
@@ -2117,6 +2133,7 @@
 
         selectNote(id) {
             this.selectedNoteId = id;
+            document.querySelector('.notes-container')?.classList.add('show-editor');
             this.render();
         }
     };
@@ -2174,7 +2191,7 @@
         getSortedEvents(dateFilter = null) {
             let list = (Store.data.events || []).map(e => ({ ...e, isTask: false }));
 
-            const tasksWithDeadline = (Store.data.tasks || []).filter(t => t.dueDate);
+            const tasksWithDeadline = (Store.data.tasks || []).filter(t => t.dueDate && !t.completed);
             tasksWithDeadline.forEach(t => {
                 const course = (Store.data.courses || []).find(c => c.id === t.courseId);
                 const tag = course ? course.code : (t.priority === 'high' ? 'High Priority' : 'Assignment');
@@ -2257,7 +2274,6 @@
                             </span>
                         </div>
                         ${e.time ? `<div style="font-family:var(--font-mono); font-size:0.76rem; color:var(--text-muted); margin-top:2px; font-weight:600;">${escapeHtml(e.time)}</div>` : ''}
-                        ${e.desc ? `<div style="font-size:0.8rem; color:var(--text-secondary); margin-top:3px;">${escapeHtml(e.desc)}</div>` : ''}
                     </div>
                     <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Calendar.deleteEvent('${e.id}')">&times;</button>
                 </div>
@@ -2359,7 +2375,6 @@
                         <div class="cal-cell-add-icon">+</div>
                         ${dayEvents.map(ev => `
                             <div class="cal-event-pill" title="${escapeHtml(ev.title)} (${escapeHtml(ev.time || '')})">
-                                ${ev.time && ev.time !== 'All Day' ? `<span class="ev-time">${escapeHtml(ev.time.split('-')[0].trim())}</span>` : ''}
                                 <span>${escapeHtml(ev.title)}</span>
                             </div>
                         `).join('')}
@@ -2397,7 +2412,6 @@
                             ${dayEvents.map(ev => `
                                 <div class="card" style="padding:6px 8px; font-size:0.75rem;">
                                     <div style="font-weight:700; color:var(--text-primary);">${escapeHtml(ev.title)}</div>
-                                    <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--sv-orange); font-weight:600;">${escapeHtml(ev.time || 'All Day')}</div>
                                 </div>
                             `).join('')}
                             ${dayEvents.length === 0 ? `<div style="text-align:center; padding-top:16px; font-size:0.74rem; color:var(--text-dim); font-weight:500;">+ Add Event</div>` : ''}
@@ -2758,9 +2772,13 @@
 
         updateNavVisibility() {
             const navItem = document.getElementById('navItemClassroom');
+            const drawerNavItem = document.getElementById('drawerNavItemClassroom');
             const connected = this.isConnected();
             if (navItem) {
                 navItem.style.display = connected ? '' : 'none';
+            }
+            if (drawerNavItem) {
+                drawerNavItem.style.display = connected ? '' : 'none';
             }
             if (!connected && window.location.hash.replace('#', '').toLowerCase() === 'classroom') {
                 Router.navigate('dashboard');
@@ -2798,6 +2816,42 @@
 
                 Toast.show('Connecting to Google Classroom...');
                 await this.syncWithToken(token, userPayload, false);
+
+                // Automatically link and back up StudyVerse workspace under school Classroom email!
+                if (result.user.email) {
+                    try {
+                        const linkRes = await fetch('/api/user-data/link-classroom', {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                ...(Store.uid ? { 'x-studyverse-uid': Store.uid } : {})
+                            },
+                            body: JSON.stringify({ email: result.user.email, displayName: result.user.displayName })
+                        });
+                        if (linkRes.ok) {
+                            const linkJson = await linkRes.json();
+                            if (linkJson.success && linkJson.data) {
+                                Store.uid = linkJson.uid;
+                                localStorage.setItem('studyverse_uid_local', linkJson.uid);
+                                Store.data = linkJson.data;
+                                Store.save();
+                                
+                                // Rerender views with newly merged school account data
+                                Dashboard.render();
+                                Flashcards.renderDecksList();
+                                Tasks.render();
+                                Notes.render();
+                                Calendar.render();
+                                Courses.render();
+                                Classroom.render();
+                                SettingsModal.render();
+                                Toast.show(`Synced study progress to school account ${result.user.email}`);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn("Failed to automatically link school email:", err);
+                    }
+                }
 
                 this.updateNavVisibility();
                 SettingsModal.render();
@@ -2871,7 +2925,7 @@
                         const addedPosts = newPosts.filter(p => !oldPostIds.has(p.id));
 
                         Store.data.classroom = json.classroom;
-                        Store.save();
+                        this.syncClassroomToTasksAndCalendar(json.classroom.upcoming);
                         this.render();
                         SettingsModal.render();
 
@@ -2942,7 +2996,7 @@
                         const addedPosts = newPosts.filter(p => !oldPostIds.has(p.id));
 
                         Store.data.classroom = json.classroom;
-                        Store.save();
+                        this.syncClassroomToTasksAndCalendar(json.classroom.upcoming);
                         this.render();
                         SettingsModal.render();
 
@@ -2969,6 +3023,73 @@
             } finally {
                 this.isSyncing = false;
                 this.setSyncingState(false);
+            }
+        },
+
+        syncClassroomToTasksAndCalendar(upcomingItems) {
+            if (!Array.isArray(upcomingItems)) return;
+            
+            let tasksChanged = false;
+            let eventsChanged = false;
+            
+            Store.data.tasks = Store.data.tasks || [];
+            Store.data.events = Store.data.events || [];
+            
+            upcomingItems.forEach(item => {
+                const taskId = `cr_task_${item.id}`;
+                const eventId = `cr_evt_${item.id}`;
+                
+                // 1. Sync to study tasks list
+                const taskExists = Store.data.tasks.some(t => t.id === taskId);
+                if (!taskExists) {
+                    const taskTitle = item.courseName ? `[${item.courseName}] ${item.title}` : item.title;
+                    const isToday = item.dueDate === new Date().toISOString().split('T')[0];
+                    
+                    Store.data.tasks.unshift({
+                        id: taskId,
+                        title: taskTitle,
+                        isToday: isToday,
+                        dueDate: item.dueDate || null,
+                        dueTime: item.dueTime || null,
+                        subtext: item.alternateLink || null,
+                        completed: item.status === 'Turned in' || item.status === 'Graded',
+                        priority: item.status === 'Missing' ? 'high' : 'medium',
+                        subtasks: [],
+                        type: 'classroom',
+                        createdAt: new Date().toISOString()
+                    });
+                    tasksChanged = true;
+                } else {
+                    // Update completion status if changed in classroom
+                    const task = Store.data.tasks.find(t => t.id === taskId);
+                    const shouldBeCompleted = item.status === 'Turned in' || item.status === 'Graded';
+                    if (task && task.completed !== shouldBeCompleted) {
+                        task.completed = shouldBeCompleted;
+                        tasksChanged = true;
+                    }
+                }
+                
+                // 2. Sync to study calendar list
+                const eventExists = Store.data.events.some(e => e.id === eventId);
+                if (!eventExists && item.dueDate) {
+                    const eventTitle = item.courseName ? `[${item.courseName}] ${item.title}` : item.title;
+                    Store.data.events.push({
+                        id: eventId,
+                        date: item.dueDate,
+                        title: eventTitle,
+                        time: item.dueTime ? formatTime12h(item.dueTime) : 'All Day',
+                        tag: 'Assignment',
+                        desc: item.description || `Classroom course link: ${item.alternateLink || ''}`
+                    });
+                    eventsChanged = true;
+                }
+            });
+            
+            if (tasksChanged || eventsChanged) {
+                Store.save();
+                if (tasksChanged) Tasks.render();
+                if (eventsChanged) Calendar.render();
+                Dashboard.render();
             }
         },
 
@@ -3218,6 +3339,78 @@
             if (syncBtn) {
                 syncBtn.addEventListener('click', () => Classroom.sync(false));
             }
+
+            const linkEmailBtn = document.getElementById('btnLinkAccountEmail');
+            if (linkEmailBtn) {
+                linkEmailBtn.addEventListener('click', async () => {
+                    const input = document.getElementById('syncAccountEmailInput');
+                    const passInput = document.getElementById('syncAccountPassphraseInput');
+                    const email = (input?.value || '').trim();
+                    const passphrase = (passInput?.value || '').trim();
+
+                    if (!email || !email.includes('@')) {
+                        alert('Please enter a valid email address.');
+                        return;
+                    }
+                    if (!passphrase || passphrase.length < 4) {
+                        alert('Please enter a security passphrase of at least 4 characters.');
+                        return;
+                    }
+                    
+                    try {
+                        linkEmailBtn.disabled = true;
+                        linkEmailBtn.textContent = 'Linking...';
+                        const res = await fetch('/api/user-data/link-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email, passphrase })
+                        });
+                        
+                        if (res.ok) {
+                            const json = await res.json();
+                            if (json.success && json.data) {
+                                Store.uid = json.uid;
+                                Store.data = json.data;
+                                Store.save(); // Automatically caches locally as well
+                                
+                                // Rerender views with newly merged cloud data
+                                Dashboard.render();
+                                Flashcards.renderDecksList();
+                                Tasks.render();
+                                Notes.render();
+                                Calendar.render();
+                                Courses.render();
+                                Classroom.render();
+                                
+                                this.render();
+                                if (passInput) passInput.value = '';
+                                Toast.show(`Synced workspace with ${email}`);
+                            } else {
+                                alert(json.error || 'Failed to sync account.');
+                            }
+                        } else {
+                            const json = await res.json().catch(() => null);
+                            alert(json?.error || 'Failed to sync account (unauthorized or incorrect passphrase).');
+                        }
+                    } catch (err) {
+                        alert('Network connection error: ' + err.message);
+                    } finally {
+                        linkEmailBtn.disabled = false;
+                        linkEmailBtn.textContent = 'Link Account & Cloud Sync';
+                    }
+                });
+            }
+
+            const changeEmailBtn = document.getElementById('btnChangeAccountEmail');
+            if (changeEmailBtn) {
+                changeEmailBtn.addEventListener('click', () => {
+                    if (confirm('Switching accounts will unlink this device from the current email and refresh the workspace. Continue?')) {
+                        localStorage.removeItem('studyverse_uid_local');
+                        document.cookie = "studyverse_uid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                        window.location.reload();
+                    }
+                });
+            }
         },
 
         open(tab = 'connections') {
@@ -3286,6 +3479,21 @@
                     }
                 }
             }
+
+            // Sync and toggle the Account Sync elements
+            const unlinkedArea = document.getElementById('settingsAccountUnlinkedState');
+            const linkedArea = document.getElementById('settingsAccountLinkedState');
+            const emailLabel = document.getElementById('linkedAccountEmailLabel');
+            
+            const linkedEmail = Store.data.profile?.email;
+            if (linkedEmail) {
+                if (unlinkedArea) unlinkedArea.style.display = 'none';
+                if (linkedArea) linkedArea.style.display = 'block';
+                if (emailLabel) emailLabel.textContent = linkedEmail;
+            } else {
+                if (unlinkedArea) unlinkedArea.style.display = 'block';
+                if (linkedArea) linkedArea.style.display = 'none';
+            }
         }
     };
 
@@ -3323,6 +3531,14 @@
                     btn.classList.remove('drag-hover-target');
                     clearTimeout(this.dragHoverTimer);
                     this.dragHoverTimer = null;
+                });
+            });
+
+            document.querySelectorAll('.drawer-nav-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.navigate(btn.dataset.route);
+                    window.StudyVerse?.toggleMobileDrawer(false);
                 });
             });
 
@@ -3419,6 +3635,9 @@
             document.querySelectorAll('.app-nav .nav-item').forEach(item => {
                 item.classList.toggle('active', item.dataset.route === route);
             });
+            document.querySelectorAll('.drawer-nav-item').forEach(item => {
+                item.classList.toggle('active', item.dataset.route === route);
+            });
 
             document.querySelectorAll('.app-view').forEach(view => view.classList.remove('active-view'));
             const target = document.getElementById(`view-${route}`);
@@ -3503,6 +3722,12 @@
             Toast,
             ProfileModal,
             TopLeftNotification,
+            toggleMobileDrawer(show) {
+                const drawer = document.getElementById('mobileNavDrawer');
+                const backdrop = document.getElementById('mobileDrawerBackdrop');
+                if (drawer) drawer.classList.toggle('show', show);
+                if (backdrop) backdrop.classList.toggle('show', show);
+            },
             draggedPayload: null
         };
     });

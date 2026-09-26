@@ -29,7 +29,7 @@
                 <button class="nav-item active" data-route="dashboard">Dashboard</button>
                 <button class="nav-item" data-route="flashcards">Flashcards</button>
                 <button class="nav-item" data-route="pomodoro">Pomodoro</button>
-                <button class="nav-item" data-route="tasks">Tasks</button>
+                <button class="nav-item" data-route="tasks">Todo</button>
                 <button class="nav-item" data-route="notes">Notes</button>
                 <button class="nav-item" data-route="calendar">Calendar</button>
                 <button class="nav-item" data-route="courses">Courses</button>
@@ -37,6 +37,13 @@
             </nav>
 
             <div class="header-actions">
+                <button id="mobileHamburgerBtn" class="hamburger-btn" type="button" aria-label="Open Navigation Menu" onclick="window.StudyVerse?.toggleMobileDrawer(true)">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="4" y1="12" x2="20" y2="12"></line>
+                        <line x1="4" y1="6" x2="20" y2="6"></line>
+                        <line x1="4" y1="18" x2="20" y2="18"></line>
+                    </svg>
+                </button>
                 <div id="headerPomoPill" class="header-pomo-pill" title="Click to view Pomodoro session">
                     <span class="header-pomo-dot"></span>
                     <span id="headerPomoTime">25:00</span>
@@ -439,14 +446,14 @@
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2">
                             <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
                         </svg>
-                        Tasks
+                        Todo List
                     </h1>
                 </div>
 
                 <div class="tasks-container">
                     <div class="task-creator-box">
                         <div class="task-creator-main">
-                            <input type="text" id="taskInputTitle" class="task-creator-input" placeholder="Type a study task and press Enter...">
+                            <input type="text" id="taskInputTitle" class="task-creator-input" placeholder="Type a todo item and press Enter...">
                             <button id="taskAddBtn" class="btn btn-primary btn-sm" type="button">Add</button>
                         </div>
                         <div class="task-creator-meta">
@@ -490,9 +497,12 @@
                     </div>
 
                     <div id="noteEditorPane" class="note-editor-pane">
-                        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-                            <input type="text" id="noteEditorTitle" class="note-editor-title" placeholder="Untitled">
-                            <div style="display:flex; gap:6px; align-items:center;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; width:100%;">
+                            <button id="noteMobileBackBtn" class="btn btn-secondary btn-sm mobile-only-back-btn" type="button" onclick="document.querySelector('.notes-container').classList.remove('show-editor')" style="display:none; align-items:center; gap:4px; padding:6px 10px;">
+                                &larr; Pages
+                            </button>
+                            <input type="text" id="noteEditorTitle" class="note-editor-title" placeholder="Untitled" style="flex:1; min-width:120px;">
+                            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                                 <select id="noteCourseSelect" class="select" style="width:auto; font-size:0.78rem; padding:3px 8px;"></select>
                                 <button id="noteMakeFlashcardsBtn" class="btn btn-accent btn-sm" type="button" title="Convert note into active-recall flashcards">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1023,6 +1033,32 @@
 
             <div id="settingsTabGeneral" class="settings-tab-content" style="display:none;">
                 <div class="card" style="padding:14px; margin-bottom:12px;">
+                    <div style="font-weight:600; font-size:0.9rem; margin-bottom:4px;">Link Account & Cloud Save</div>
+                    <div id="settingsAccountUnlinkedState">
+                        <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">Link your account with an email and a security phrase. The phrase acts as your security key to protect, secure, and restore your notes, flashcards, and tasks.</div>
+                        <div class="form-group" style="margin-bottom:10px;">
+                            <label class="form-label" for="syncAccountEmailInput">Email Address</label>
+                            <input type="email" id="syncAccountEmailInput" class="input" placeholder="e.g. name@domain.com">
+                        </div>
+                        <div class="form-group" style="margin-bottom:12px;">
+                            <label class="form-label" for="syncAccountPassphraseInput">Security Passphrase (min. 4 characters)</label>
+                            <input type="password" id="syncAccountPassphraseInput" class="input" placeholder="Create or enter account secret key">
+                        </div>
+                        <button id="btnLinkAccountEmail" class="btn btn-primary btn-sm" type="button">Link Account & Cloud Sync</button>
+                    </div>
+                    <div id="settingsAccountLinkedState" style="display:none;">
+                        <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">This workspace is securely linked and synced with the cloud.</div>
+                        <div class="connected-account-box" style="margin-bottom:12px;">
+                            <div>
+                                <div style="font-weight:600; font-size:0.85rem;" id="linkedAccountEmailLabel">scholar@studyverse.edu</div>
+                                <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">All study cards, pages, and schedules synced.</div>
+                            </div>
+                        </div>
+                        <button id="btnChangeAccountEmail" class="btn btn-secondary btn-sm" type="button">Switch / Unlink Account</button>
+                    </div>
+                </div>
+
+                <div class="card" style="padding:14px; margin-bottom:12px;">
                     <div style="font-weight:600; font-size:0.9rem; margin-bottom:4px;">Workspace Storage</div>
                     <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">All tasks, courses, notes, and metrics are saved locally in your active student session.</div>
                     <button class="btn btn-subtle btn-sm" onclick="document.getElementById('settingsModal').classList.remove('show'); document.getElementById('resetConfirmModal').classList.add('show');">
@@ -1048,6 +1084,30 @@
 
     <div id="toastNotice" class="toast-notice">
         <span id="toastText">Action completed</span>
+    </div>
+
+    <!-- Mobile Navigation Drawer and Backdrop -->
+    <div id="mobileDrawerBackdrop" class="drawer-backdrop" onclick="window.StudyVerse?.toggleMobileDrawer(false)"></div>
+    <div id="mobileNavDrawer" class="mobile-drawer">
+        <div class="drawer-header">
+            <div class="brand-area" onclick="window.StudyVerse?.Router.navigate('dashboard'); window.StudyVerse?.toggleMobileDrawer(false)">
+                <div class="brand-logo-wrap">
+                    <img class="brand-logo-img" src="/assets/StudyVerseLogo.png" alt="StudyVerse Logo">
+                </div>
+                <div class="brand-title">Study<span>Verse</span></div>
+            </div>
+            <button class="drawer-close-btn" type="button" onclick="window.StudyVerse?.toggleMobileDrawer(false)">&times;</button>
+        </div>
+        <nav class="drawer-nav" aria-label="Mobile Navigation">
+            <button class="drawer-nav-item active" data-route="dashboard">Dashboard</button>
+            <button class="drawer-nav-item" data-route="flashcards">Flashcards</button>
+            <button class="drawer-nav-item" data-route="pomodoro">Pomodoro</button>
+            <button class="drawer-nav-item" data-route="tasks">Todo</button>
+            <button class="drawer-nav-item" data-route="notes">Notes</button>
+            <button class="drawer-nav-item" data-route="calendar">Calendar</button>
+            <button class="drawer-nav-item" data-route="courses">Courses</button>
+            <button class="drawer-nav-item" data-route="classroom" id="drawerNavItemClassroom" style="display:none;">Classroom</button>
+        </nav>
     </div>
 </body>
 </html>

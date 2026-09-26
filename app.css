@@ -1756,7 +1756,7 @@ body {
 
 .cal-days-header {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     text-align: center;
     font-size: 0.76rem;
     font-weight: 700;
@@ -1767,13 +1767,15 @@ body {
 
 .cal-grid {
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 3px;
     margin-top: 4px;
 }
 
 .cal-cell {
     min-height: 86px;
+    min-width: 0;
+    overflow: hidden;
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-sm);
     padding: 6px 7px;
@@ -1843,9 +1845,9 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    display: block;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .cal-event-pill span.ev-time {
@@ -2018,6 +2020,8 @@ body {
     padding: 24px;
     box-shadow: var(--shadow-lg);
     animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 85vh;
+    overflow-y: auto;
 }
 
 .modal-header {
@@ -2590,11 +2594,487 @@ body {
     -webkit-box-orient: vertical;
 }
 
-@media (max-width: 900px) {
-    .metrics-overview-row { grid-template-columns: repeat(2, 1fr); }
-    .dashboard-grid { grid-template-columns: 1fr; }
-    .notes-container { grid-template-columns: 1fr; }
-    .week-grid-container { grid-template-columns: repeat(2, 1fr); }
-    .classroom-layout-grid { grid-template-columns: 1fr; }
-    .app-header { padding: 0 14px; }
+/* Hamburger Menu & Navigation Drawer Styles */
+.hamburger-btn {
+    appearance: none;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-sm);
+    transition: var(--transition);
 }
+
+.hamburger-btn:hover {
+    background: var(--bg-surface-hover);
+}
+
+.drawer-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 16, 19, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1001;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.drawer-backdrop.show {
+    display: block;
+    opacity: 1;
+}
+
+.mobile-drawer {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 280px;
+    height: 100vh;
+    background: var(--bg-surface);
+    backdrop-filter: var(--card-backdrop);
+    -webkit-backdrop-filter: var(--card-backdrop);
+    border-right: 1px solid var(--border-light);
+    box-shadow: var(--shadow-lg);
+    z-index: 1002;
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mobile-drawer.show {
+    transform: translateX(280px);
+}
+
+.drawer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 14px;
+}
+
+.drawer-close-btn {
+    appearance: none;
+    background: transparent;
+    border: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    color: var(--sv-orange);
+    cursor: pointer;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    border-radius: 50%;
+}
+
+.drawer-close-btn:hover {
+    color: var(--sv-orange-hover);
+    background: var(--bg-surface-hover);
+}
+
+.drawer-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.drawer-nav-item {
+    appearance: none;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    text-align: left;
+    width: 100%;
+}
+
+.drawer-nav-item:hover {
+    color: var(--text-primary);
+    background: var(--bg-surface-hover);
+}
+
+.drawer-nav-item.active {
+    color: var(--sv-orange);
+    background: var(--sv-orange-light);
+    border-left: 3px solid var(--sv-orange);
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    font-weight: 700;
+}
+
+/* Accessibility: Expand hit targets for small close triggers/buttons to 44x44px */
+.modal-close-btn, 
+.manual-card-delete-btn, 
+.note-editor-pane #noteDeleteBtn, 
+#fcRemoveFileBtn,
+.custom-metric-card button,
+#calModalClose {
+    position: relative;
+}
+
+.modal-close-btn::after, 
+.manual-card-delete-btn::after, 
+.note-editor-pane #noteDeleteBtn::after, 
+#fcRemoveFileBtn::after,
+.custom-metric-card button::after,
+#calModalClose::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    min-width: 44px;
+    min-height: 44px;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+    /* Enhanced frosted glass values and a clean frosted overlay for mobile & tablet focus */
+    :root, [data-theme="light"] {
+        --bg-surface: rgba(255, 255, 255, 0.96);
+        --bg-subtle: rgba(246, 246, 244, 0.96);
+        --card-backdrop: blur(45px);
+    }
+    [data-theme="dark"] {
+        --bg-surface: rgba(20, 20, 24, 0.95);
+        --bg-subtle: rgba(28, 28, 34, 0.95);
+        --card-backdrop: blur(45px);
+    }
+
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: var(--bg-page);
+        opacity: 0.92;
+        z-index: 0;
+        pointer-events: none;
+    }
+
+    /* 1. Metrics & Grid Scaling */
+    .metrics-overview-row { 
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 12px;
+    }
+    .dashboard-grid { 
+        grid-template-columns: 1fr; 
+        gap: 16px;
+    }
+    .week-grid-container { 
+        grid-template-columns: repeat(2, 1fr); 
+        gap: 10px;
+    }
+    .classroom-layout-grid { 
+        grid-template-columns: 1fr; 
+        gap: 16px;
+    }
+
+    /* 2. Top Header Optimization with Hamburger Menu Toggle */
+    .app-header { 
+        padding: 0 14px; 
+        height: 52px;
+    }
+    .brand-title {
+        font-size: 1rem;
+    }
+    .app-nav {
+        display: none !important; /* Hide original navigation on mobile viewports */
+    }
+    .hamburger-btn {
+        display: flex !important; /* Display accessible hamburger toggle */
+    }
+
+    /* Content view clearance */
+    .main-content {
+        padding: 16px 14px 40px;
+    }
+
+    /* Keep widgets and toasts comfortably positioned */
+    .floating-widget-wrap, .toast-notice {
+        bottom: 24px !important;
+    }
+
+    /* Tablet Calendar Optimization (768px-1024px) */
+    .cal-grid-container {
+        padding: 10px !important;
+    }
+    .cal-days-header {
+        display: grid !important;
+        grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+        padding-bottom: 6px !important;
+        font-size: 0.72rem !important;
+        visibility: visible !important;
+    }
+    .cal-grid {
+        display: grid !important;
+        grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    }
+    .cal-cell {
+        min-height: 58px !important;
+        padding: 4px 5px !important;
+        gap: 2px !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+    }
+    .cal-cell-num {
+        font-size: 0.72rem !important;
+    }
+    .cal-cell-add-icon {
+        width: 14px !important;
+        height: 14px !important;
+        font-size: 0.65rem !important;
+        top: 3px !important;
+        right: 3px !important;
+    }
+    .cal-event-pill {
+        font-size: 0.62rem !important;
+        padding: 1px 4px !important;
+        border-radius: 3px !important;
+        line-height: 1.15 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .cal-event-pill span.ev-time {
+        font-size: 0.58rem !important;
+    }
+
+    /* 3. Notes Navigation & Back Button on Mobile */
+    .notes-container { 
+        grid-template-columns: 1fr; 
+        gap: 0;
+    }
+    .notes-sidebar {
+        display: block;
+    }
+    .note-editor-pane {
+        display: none !important;
+    }
+    .notes-container.show-editor .notes-sidebar {
+        display: none !important;
+    }
+    .notes-container.show-editor .note-editor-pane {
+        display: flex !important;
+        margin-top: 0;
+    }
+    .note-editor-pane .mobile-only-back-btn {
+        display: inline-flex !important;
+    }
+
+    /* 4. Interactive Target Heights for Mobile Buttons & Controls */
+    .btn, .btn-sm, .btn-lg {
+        min-height: 44px !important;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+    }
+    
+    .subnav-tab, .settings-tab-btn, .pomo-tab-btn, .cal-tab-btn, .cr-chip {
+        min-height: 44px !important;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* 5. Accessible 44x44px Checklist Hit Area Expansion */
+    .task-check {
+        position: relative;
+    }
+    .task-check::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 44px;
+        height: 44px;
+        cursor: pointer;
+        z-index: 10;
+    }
+}
+
+@media (max-width: 680px) {
+    /* Flashcards AI Generator View Layout */
+    #fcTabGenerator > div {
+        grid-template-columns: 1fr !important;
+        gap: 20px;
+    }
+}
+
+@media (max-width: 600px) {
+    /* 1. Stat Cards Scaling */
+    .metric-stat-card {
+        padding: 14px 12px;
+    }
+    .metric-stat-value {
+        font-size: 1.7rem;
+        margin: 6px 0 2px;
+    }
+    .metric-stat-sub {
+        font-size: 0.7rem;
+    }
+
+    /* 2. Scrollable Sub-Navigation Lists */
+    .flashcards-subnav, .settings-nav-tabs, .pomo-mode-tabs {
+        display: flex;
+        overflow-x: auto;
+        white-space: nowrap;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border-light);
+        margin-bottom: 16px;
+        gap: 4px;
+        width: 100%;
+    }
+    .flashcards-subnav::-webkit-scrollbar, 
+    .settings-nav-tabs::-webkit-scrollbar, 
+    .pomo-mode-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    .subnav-tab, .settings-tab-btn, .pomo-tab-btn {
+        flex-shrink: 0;
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+
+    /* 3. Manual Flashcard Editor Layout */
+    .manual-card-fields {
+        grid-template-columns: 1fr !important;
+        gap: 12px;
+    }
+    .manual-card-row {
+        gap: 8px;
+        padding: 10px 8px;
+    }
+
+    /* 4. Calendar Month View Clutter Optimization */
+    .cal-cell {
+        min-height: 52px;
+        padding: 4px 2px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .cal-cell-add-icon {
+        display: none !important;
+    }
+    .cal-cell .cal-event-pill {
+        display: none !important;
+    }
+    .cal-cell .cal-event-pill:first-of-type {
+        display: block !important;
+        width: 6px;
+        height: 6px;
+        min-width: 6px;
+        background: var(--sv-orange);
+        border-radius: 50%;
+        margin: 2px auto 0;
+        padding: 0;
+        border: none;
+        text-indent: -9999px;
+        overflow: hidden;
+    }
+
+    /* 5. Pomodoro Clock Tuning */
+    .pomo-dial-wrap {
+        width: 230px;
+        height: 230px;
+        margin-bottom: 16px;
+    }
+    .pomo-time-display {
+        font-size: 3rem;
+    }
+
+    /* 6. Compact Top Profile Button */
+    #profileBtnName, .profile-btn svg {
+        display: none !important;
+    }
+    .profile-btn {
+        padding: 4px;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        justify-content: center;
+        border: 1px solid var(--border-light);
+    }
+    .profile-avatar-icon {
+        width: 24px;
+        height: 24px;
+        margin: 0;
+    }
+}
+
+@media (max-width: 500px) {
+    /* 1. Responsive Stat Card Grid */
+    .metrics-overview-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    /* 2. Task Input & Metadata Wrap */
+    .task-creator-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    #taskTodayChip {
+        grid-column: span 2;
+        width: 100%;
+        text-align: center;
+        height: 36px;
+    }
+    .task-creator-meta input, .task-creator-meta select {
+        width: 100%;
+        height: 36px;
+        font-size: 0.82rem;
+    }
+
+    /* 3. Header Action Spacing */
+    .header-actions {
+        gap: 6px;
+    }
+    .header-pomo-pill {
+        padding: 3px 6px;
+        font-size: 0.75rem;
+    }
+
+    /* 4. Course Cards Grid */
+    .courses-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+#taskSubtextInput { display: none !important; }
+.task-subtext { display: none !important; }
+
