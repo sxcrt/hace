@@ -9,6 +9,9 @@
     "build": "node -c server.js app.js api/index.js",
     "lint": "node -c server.js app.js api/index.js"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "@google/genai": "^2.24.0",
     "cookie-parser": "^1.4.7",
