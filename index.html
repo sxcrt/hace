@@ -167,15 +167,15 @@
                     <div id="velocityBarsWrap" class="velocity-bars-wrap"></div>
                 </div>
 
-                <!-- Custom Metrics Section -->
-                <div class="custom-metrics-section">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                <!-- Custom Metrics Section (Hidden if empty, phone-widget style) -->
+                <div id="customMetricsSection" class="custom-metrics-section" style="display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                         <div>
-                            <div style="font-weight:600; font-size:0.92rem; color:var(--text-primary);">Custom Metrics & Targets</div>
-                            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Track custom milestones like textbook chapters, problems, or exam practice</div>
+                            <div style="font-weight:700; font-size:0.95rem; color:var(--text-primary);">Custom Metric Widgets</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:1px;">Personalized study milestones · Drag cards to reorder</div>
                         </div>
                         <button id="openAddMetricModalBtn" class="btn btn-secondary btn-sm" type="button">
-                            + Add Metric
+                            + Add Widget
                         </button>
                     </div>
 
@@ -586,11 +586,13 @@
             <div class="form-group">
                 <label class="form-label">Color Accent</label>
                 <div id="newCourseColorPalette" class="course-palette-row">
-                    <button type="button" class="course-color-btn active" data-color="orange" style="background:#e8983c;"></button>
-                    <button type="button" class="course-color-btn" data-color="blue" style="background:#3b82f6;"></button>
-                    <button type="button" class="course-color-btn" data-color="emerald" style="background:#10b981;"></button>
-                    <button type="button" class="course-color-btn" data-color="purple" style="background:#8b5cf6;"></button>
-                    <button type="button" class="course-color-btn" data-color="rose" style="background:#f43f5e;"></button>
+                    <button type="button" class="course-color-btn active" data-color="orange" style="background:#e8983c;" title="Warm Orange"></button>
+                    <button type="button" class="course-color-btn" data-color="blue" style="background:#3b82f6;" title="Cosmic Blue"></button>
+                    <button type="button" class="course-color-btn" data-color="emerald" style="background:#10b981;" title="Emerald Green"></button>
+                    <button type="button" class="course-color-btn" data-color="purple" style="background:#8b5cf6;" title="Nebula Purple"></button>
+                    <button type="button" class="course-color-btn" data-color="rose" style="background:#f43f5e;" title="Supernova Rose"></button>
+                    <button type="button" class="course-color-btn" data-color="cyan" style="background:#06b6d4;" title="Cyan Star"></button>
+                    <button type="button" class="course-color-btn" data-color="amber" style="background:#f59e0b;" title="Solar Amber"></button>
                 </div>
             </div>
             <div class="modal-actions">
@@ -768,6 +770,49 @@
                 <div id="courseModalNotesList"></div>
             </div>
         </div>
+    </div>
+
+    <!-- MODAL: RESET TO BLANK SLATE CONFIRMATION -->
+    <div id="resetConfirmModal" class="modal-backdrop">
+        <div class="modal-dialog" style="max-width:460px;">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <h3 class="modal-title" style="color:#dc2626;">Reset Workspace</h3>
+                </div>
+                <button class="modal-close-btn" type="button" onclick="document.getElementById('resetConfirmModal').classList.remove('show')">&times;</button>
+            </div>
+            
+            <div style="font-size:0.86rem; color:var(--text-secondary); line-height:1.55; margin-bottom:16px;">
+                This will permanently delete all tasks, flashcard decks, notes, custom metrics, courses, calendar events, and study logs.
+            </div>
+
+            <div class="form-group" style="margin-bottom:18px;">
+                <label class="form-label" for="resetConfirmInput">
+                    Type your display name <span id="resetConfirmExpectedName" style="color:var(--text-primary); font-weight:700; font-family:var(--font-mono); background:var(--bg-subtle); padding:2px 6px; border-radius:4px;">Scholar</span> to confirm:
+                </label>
+                <input type="text" id="resetConfirmInput" class="input" placeholder="Type your name exactly..." autocomplete="off">
+                <div id="resetConfirmError" style="font-size:0.75rem; color:#dc2626; margin-top:4px; display:none;">Name does not match.</div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" type="button" onclick="document.getElementById('resetConfirmModal').classList.remove('show')">Cancel</button>
+                <button id="executeResetBtn" class="btn btn-danger" style="background:#dc2626; color:#fff;" type="button" disabled>Permanently Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Custom Widget Trigger Button (Bottom Right) -->
+    <div id="floatingAddWidgetWrap" class="floating-widget-wrap">
+        <button id="floatingAddWidgetBtn" class="floating-widget-btn" type="button" title="Add Custom Metric Widget">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span class="floating-widget-label">Widget</span>
+        </button>
     </div>
 
     <!-- Toast Notification Notice -->

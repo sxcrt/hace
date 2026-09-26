@@ -1,58 +1,58 @@
 /**
- * StudyVerse — Clean Minimalist Student Workspace
+ * StudyVerse — Minimalist Space-Inspired Student Workspace
  * Features:
- * - Visible Black (Light Mode) and White (Dark Mode) Constellations
- * - Periodic Shooting Stars & Meteor Showers on Flashcard Streaks (10 in a row)
- * - Multi-Metric Dashboard with Custom User Metrics
- * - PFP (Avatar Presets & Image Upload) and Name Management
- * - Fully Functional Course Management with Drag & Drop Embeds
- * - Anki Spaced Repetition (SM-2) Flashcard Studio with Manual & AI Generation
- * - Zero-Emoji Clean Typography with Inline SVG Icons
- * - Continuous Background Pomodoro Engine
+ * - Authentic Astronomical Constellations (Orion, Ursa Major, Cassiopeia, Cygnus, Taurus, Canis Major with Sirius, etc.)
+ * - 3D Multi-Plane Space Depth with Parallax & Twinkling
+ * - Interactive Constellation Easter Egg with Stardust Glow & Star Identification
+ * - Meteor Showers on Flashcard Streaks (10 in a row strictly on correct answers)
+ * - Safe Blank Slate Workspace Reset with Display Name Confirmation
+ * - Cross-Section Drag & Drop for Flashcard Decks and Notes with Hover Nav Switching
+ * - Auto-Sorted Calendar Events by Time (Earliest First)
+ * - Interactive Calendar Cells with Hover Affordance
+ * - Custom Metric Widgets with Drag & Drop Reordering & Floating Dock Trigger
+ * - Course Color Accent Customization
+ * - Weighted Pomodoro Dial with Soft Ambient Glow
+ * - Ghost / Phantom Slot Cards for Flashcards Studio
  */
 
 (function () {
     'use strict';
 
     /* ==========================================================================
-       1. CONSTELLATIONS & METEOR ENGINE (WITH METEOR SHOWER)
+       1. ASTRONOMICAL CONSTELLATION & 3D SPACE DEPTH ENGINE
        ========================================================================== */
     const Constellations = {
         canvas: null,
         ctx: null,
         stars: [],
+        deepStars: [],
+        constellationsData: [],
         meteors: [],
         width: 0,
         height: 0,
-        mouse: { x: -1000, y: -1000 },
+        mouse: { x: -1000, y: -1000, targetX: 0, targetY: 0, currentX: 0, currentY: 0 },
         lastMeteorTime: 0,
+        hoveredConstellation: null,
 
         init() {
             this.canvas = document.getElementById('constellationCanvas');
             if (!this.canvas) return;
             this.ctx = this.canvas.getContext('2d');
             this.resize();
-
-            // Populate constellation stars
-            const STAR_COUNT = Math.floor((this.width * this.height) / 14000);
-            this.stars = [];
-            for (let i = 0; i < STAR_COUNT; i++) {
-                this.stars.push({
-                    x: Math.random() * this.width,
-                    y: Math.random() * this.height,
-                    vx: (Math.random() - 0.5) * 0.3,
-                    vy: (Math.random() - 0.5) * 0.3,
-                    r: Math.random() * 1.5 + 0.8,
-                    baseAlpha: Math.random() * 0.25 + 0.15
-                });
-            }
+            this.setupSpaceField();
 
             window.addEventListener('mousemove', (e) => {
                 this.mouse.x = e.clientX;
                 this.mouse.y = e.clientY;
+                this.mouse.targetX = (e.clientX - this.width / 2) * 0.05;
+                this.mouse.targetY = (e.clientY - this.height / 2) * 0.05;
             });
 
-            window.addEventListener('resize', () => this.resize());
+            window.addEventListener('resize', () => {
+                this.resize();
+                this.setupSpaceField();
+            });
+
             this.animate();
         },
 
@@ -62,32 +62,191 @@
             this.height = this.canvas.height = window.innerHeight;
         },
 
+        setupSpaceField() {
+            const w = this.width;
+            const h = this.height;
+
+            // 1. Far Deep-Space Stars (Tiny, slow drift, faint twinkling)
+            this.deepStars = [];
+            const deepCount = Math.floor((w * h) / 6000);
+            for (let i = 0; i < deepCount; i++) {
+                this.deepStars.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    depth: Math.random() * 0.4 + 0.1, // 0.1 to 0.5
+                    r: Math.random() * 0.9 + 0.4,
+                    alpha: Math.random() * 0.35 + 0.15,
+                    twinkleSpeed: Math.random() * 0.02 + 0.008,
+                    twinklePhase: Math.random() * Math.PI * 2,
+                    vx: (Math.random() - 0.5) * 0.08,
+                    vy: (Math.random() - 0.5) * 0.08
+                });
+            }
+
+            // 2. Mid-Field Ambient Stars
+            this.stars = [];
+            const midCount = Math.floor((w * h) / 12000);
+            for (let i = 0; i < midCount; i++) {
+                this.stars.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    depth: Math.random() * 0.4 + 0.6, // 0.6 to 1.0
+                    r: Math.random() * 1.4 + 0.7,
+                    alpha: Math.random() * 0.4 + 0.2,
+                    vx: (Math.random() - 0.5) * 0.15,
+                    vy: (Math.random() - 0.5) * 0.15,
+                    twinkleSpeed: Math.random() * 0.03 + 0.01,
+                    twinklePhase: Math.random() * Math.PI * 2
+                });
+            }
+
+            // 3. Authentic Astronomical Constellations with Distinct 3D Depths & Sizes
+            // Positioned scaled across the viewport with real relative star geometries
+            this.constellationsData = [
+                {
+                    name: "Orion",
+                    latin: "The Hunter (with Betelgeuse & Rigel)",
+                    center: { x: w * 0.18, y: h * 0.28 },
+                    depth: 1.35, // Foreground, large & prominent
+                    scale: Math.min(w, h) * 0.0022,
+                    opacity: 0.9,
+                    stars: [
+                        { name: "Betelgeuse", ox: -35, oy: -55, r: 3.4, bright: true, color: "orange" },
+                        { name: "Bellatrix", ox: 32, oy: -50, r: 2.6, bright: true },
+                        { name: "Alnitak", ox: -16, oy: -6, r: 2.3, bright: true },
+                        { name: "Alnilam", ox: 0, oy: -4, r: 2.5, bright: true },
+                        { name: "Mintaka", ox: 16, oy: -2, r: 2.3, bright: true },
+                        { name: "Saiph", ox: -30, oy: 50, r: 2.5, bright: true },
+                        { name: "Rigel", ox: 35, oy: 55, r: 3.6, bright: true, color: "blue" },
+                        { name: "Meissa", ox: 0, oy: -75, r: 2.1 }
+                    ],
+                    lines: [
+                        [0, 1], [0, 2], [1, 4], [2, 3], [3, 4], [2, 5], [4, 6], [0, 7], [1, 7]
+                    ]
+                },
+                {
+                    name: "Ursa Major",
+                    latin: "The Great Bear (Big Dipper)",
+                    center: { x: w * 0.82, y: h * 0.24 },
+                    depth: 1.0, // Mid-distance
+                    scale: Math.min(w, h) * 0.0018,
+                    opacity: 0.75,
+                    stars: [
+                        { name: "Dubhe", ox: 40, oy: -35, r: 2.7, bright: true },
+                        { name: "Merak", ox: 42, oy: 15, r: 2.5, bright: true },
+                        { name: "Phecda", ox: -5, oy: 20, r: 2.4, bright: true },
+                        { name: "Megrez", ox: -10, oy: -28, r: 2.3, bright: true },
+                        { name: "Alioth", ox: -50, oy: -32, r: 2.7, bright: true },
+                        { name: "Mizar", ox: -82, oy: -45, r: 2.6, bright: true },
+                        { name: "Alkaid", ox: -115, oy: -65, r: 2.9, bright: true }
+                    ],
+                    lines: [
+                        [0, 1], [1, 2], [2, 3], [3, 0], [3, 4], [4, 5], [5, 6]
+                    ]
+                },
+                {
+                    name: "Cassiopeia",
+                    latin: "The Queen (W-Constellation)",
+                    center: { x: w * 0.52, y: h * 0.16 },
+                    depth: 0.55, // Distant deep space, smaller & delicate
+                    scale: Math.min(w, h) * 0.0012,
+                    opacity: 0.5,
+                    stars: [
+                        { name: "Caph", ox: -65, oy: 10, r: 2.2, bright: true },
+                        { name: "Schedar", ox: -30, oy: -22, r: 2.5, bright: true, color: "orange" },
+                        { name: "Gamma Cas", ox: 0, oy: 12, r: 2.6, bright: true },
+                        { name: "Ruchbah", ox: 32, oy: -18, r: 2.1, bright: true },
+                        { name: "Segin", ox: 65, oy: 15, r: 2.0, bright: true }
+                    ],
+                    lines: [
+                        [0, 1], [1, 2], [2, 3], [3, 4]
+                    ]
+                },
+                {
+                    name: "Cygnus",
+                    latin: "The Northern Cross (with Deneb & Albireo)",
+                    center: { x: w * 0.74, y: h * 0.75 },
+                    depth: 0.8, // Mid-far plane
+                    scale: Math.min(w, h) * 0.0015,
+                    opacity: 0.65,
+                    stars: [
+                        { name: "Deneb", ox: 0, oy: -55, r: 3.0, bright: true, color: "blue" },
+                        { name: "Sadr", ox: 0, oy: 0, r: 2.4, bright: true },
+                        { name: "Albireo", ox: 0, oy: 65, r: 2.4, bright: true, color: "orange" },
+                        { name: "Gienah", ox: -45, oy: 5, r: 2.2, bright: true },
+                        { name: "Fawaris", ox: 48, oy: -5, r: 2.2, bright: true }
+                    ],
+                    lines: [
+                        [0, 1], [1, 2], [3, 1], [1, 4]
+                    ]
+                },
+                {
+                    name: "Canis Major",
+                    latin: "Home of Sirius, the Brightest Star",
+                    center: { x: w * 0.16, y: h * 0.78 },
+                    depth: 1.45, // Nearest foreground anchor
+                    scale: Math.min(w, h) * 0.0022,
+                    opacity: 0.95,
+                    stars: [
+                        { name: "Sirius", ox: 0, oy: -40, r: 4.4, bright: true, radiant: true, color: "blue" },
+                        { name: "Mirzam", ox: -38, oy: -35, r: 2.7, bright: true },
+                        { name: "Muliphein", ox: 22, oy: -25, r: 2.1 },
+                        { name: "Wezen", ox: 15, oy: 25, r: 3.0, bright: true },
+                        { name: "Adhara", ox: -12, oy: 48, r: 3.2, bright: true },
+                        { name: "Aludra", ox: 42, oy: 52, r: 2.8, bright: true }
+                    ],
+                    lines: [
+                        [0, 1], [0, 2], [0, 3], [3, 4], [3, 5]
+                    ]
+                },
+                {
+                    name: "Taurus & Pleiades",
+                    latin: "The Bull (with Red Giant Aldebaran)",
+                    center: { x: w * 0.44, y: h * 0.82 },
+                    depth: 0.65, // Distant cluster plane
+                    scale: Math.min(w, h) * 0.0013,
+                    opacity: 0.58,
+                    stars: [
+                        { name: "Aldebaran", ox: -15, oy: 10, r: 3.3, bright: true, color: "orange" },
+                        { name: "Elnath", ox: 45, oy: -45, r: 2.4, bright: true },
+                        { name: "Tianguan", ox: 50, oy: 25, r: 2.1 },
+                        { name: "Ain", ox: -5, oy: -15, r: 2.0 },
+                        { name: "Hyadum I", ox: -30, oy: -5, r: 1.9 },
+                        { name: "Pleiades Cluster", ox: -65, oy: -35, r: 2.4, cluster: true }
+                    ],
+                    lines: [
+                        [0, 3], [3, 4], [0, 4], [3, 1], [0, 2]
+                    ]
+                }
+            ];
+        },
+
         spawnMeteor(isShower = false) {
-            const angle = Math.PI / 4 + (Math.random() - 0.5) * 0.25; // ~45 deg
-            const speed = Math.random() * 8 + 12;
-            const length = Math.random() * 80 + 70;
+            const angle = Math.PI / 4 + (Math.random() - 0.5) * 0.22;
+            const speed = Math.random() * 9 + 14;
+            const length = Math.random() * 90 + 75;
 
             this.meteors.push({
-                x: Math.random() * this.width * 1.2 - this.width * 0.2,
-                y: -50,
+                x: Math.random() * this.width * 1.3 - this.width * 0.25,
+                y: -60,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 length: length,
                 alpha: 1,
-                decay: isShower ? 0.015 : 0.018,
-                width: Math.random() * 1.5 + 1.2
+                decay: isShower ? 0.014 : 0.018,
+                width: Math.random() * 1.6 + 1.2
             });
         },
 
-        triggerMeteorShower(count = 22) {
-            Toast.show("10 Correct in a Row! Meteor Shower Unlocked!");
+        triggerMeteorShower(count = 24) {
+            Toast.show("✦ 10 Streak Combo! Meteor Shower Unlocked ✦");
             let spawned = 0;
             const interval = setInterval(() => {
                 this.spawnMeteor(true);
                 this.spawnMeteor(true);
                 spawned += 2;
                 if (spawned >= count) clearInterval(interval);
-            }, 120);
+            }, 110);
         },
 
         animate() {
@@ -95,67 +254,163 @@
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             ctx.clearRect(0, 0, this.width, this.height);
 
-            const starR = isDark ? 255 : 24;
-            const starG = isDark ? 255 : 24;
-            const starB = isDark ? 255 : 27;
-            const maxDist = 125;
+            // Subtle Frosted Ambient Space Wash (Prevents visual distraction)
+            const bgGrad = ctx.createRadialGradient(
+                this.width * 0.5, this.height * 0.4, 100,
+                this.width * 0.5, this.height * 0.5, Math.max(this.width, this.height) * 0.8
+            );
+            if (isDark) {
+                bgGrad.addColorStop(0, 'rgba(24, 24, 30, 0.2)');
+                bgGrad.addColorStop(1, 'rgba(15, 16, 19, 0.4)');
+            } else {
+                bgGrad.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+                bgGrad.addColorStop(1, 'rgba(246, 246, 244, 0.35)');
+            }
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, this.width, this.height);
 
-            // Draw Constellations
+            // Smooth parallax interpolation
+            this.mouse.currentX += (this.mouse.targetX - this.mouse.currentX) * 0.08;
+            this.mouse.currentY += (this.mouse.targetY - this.mouse.currentY) * 0.08;
+
+            const starBaseR = isDark ? 255 : 24;
+            const starBaseG = isDark ? 255 : 24;
+            const starBaseB = isDark ? 255 : 27;
+
+            // 1. Render Far Deep-Space Stars (Depth plane 0)
+            for (let i = 0; i < this.deepStars.length; i++) {
+                const s = this.deepStars[i];
+                s.twinklePhase += s.twinkleSpeed;
+                const twinkle = Math.sin(s.twinklePhase) * 0.25 + 0.75;
+                const px = s.x + this.mouse.currentX * s.depth;
+                const py = s.y + this.mouse.currentY * s.depth;
+
+                ctx.beginPath();
+                ctx.arc(px, py, s.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${starBaseR}, ${starBaseG}, ${starBaseB}, ${s.alpha * twinkle * (isDark ? 0.7 : 0.4)})`;
+                ctx.fill();
+            }
+
+            // 2. Render Mid-Field Floating Stars
             for (let i = 0; i < this.stars.length; i++) {
                 const s = this.stars[i];
                 s.x += s.vx;
                 s.y += s.vy;
-
                 if (s.x < 0) s.x = this.width;
                 if (s.x > this.width) s.x = 0;
                 if (s.y < 0) s.y = this.height;
                 if (s.y > this.height) s.y = 0;
 
+                s.twinklePhase += s.twinkleSpeed;
+                const twinkle = Math.sin(s.twinklePhase) * 0.3 + 0.7;
+                const px = s.x + this.mouse.currentX * s.depth;
+                const py = s.y + this.mouse.currentY * s.depth;
+
                 ctx.beginPath();
-                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${starR}, ${starG}, ${starB}, ${s.baseAlpha * (isDark ? 1.5 : 1.2)})`;
+                ctx.arc(px, py, s.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${starBaseR}, ${starBaseG}, ${starBaseB}, ${s.alpha * twinkle * (isDark ? 1.0 : 0.65)})`;
                 ctx.fill();
-
-                for (let j = i + 1; j < this.stars.length; j++) {
-                    const s2 = this.stars[j];
-                    const dx = s.x - s2.x;
-                    const dy = s.y - s2.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < maxDist) {
-                        const alpha = (1 - dist / maxDist) * (isDark ? 0.12 : 0.08);
-                        ctx.beginPath();
-                        ctx.moveTo(s.x, s.y);
-                        ctx.lineTo(s2.x, s2.y);
-                        ctx.strokeStyle = `rgba(${starR}, ${starG}, ${starB}, ${alpha})`;
-                        ctx.lineWidth = 0.85;
-                        ctx.stroke();
-                    }
-                }
-
-                // Interactive mouse proximity
-                const mdx = s.x - this.mouse.x;
-                const mdy = s.y - this.mouse.y;
-                const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
-                if (mdist < 140) {
-                    const mAlpha = (1 - mdist / 140) * 0.18;
-                    ctx.beginPath();
-                    ctx.moveTo(s.x, s.y);
-                    ctx.lineTo(this.mouse.x, this.mouse.y);
-                    ctx.strokeStyle = `rgba(232, 152, 60, ${mAlpha})`;
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                }
             }
 
-            // Periodic Random Shooting Stars
+            // 3. Render Authentic Known Constellations with Multi-Plane Depths
+            let hoveredConst = null;
+
+            this.constellationsData.forEach((c) => {
+                const depth = c.depth || 1.0;
+                const cx = c.center.x + this.mouse.currentX * depth;
+                const cy = c.center.y + this.mouse.currentY * depth;
+                const scale = c.scale || 1;
+                const baseOpacity = c.opacity || 0.8;
+
+                // Check mouse proximity to constellation center or stars for Easter Egg
+                const distToCenter = Math.hypot(this.mouse.x - cx, this.mouse.y - cy);
+                const isHovered = distToCenter < (120 * depth);
+                if (isHovered) hoveredConst = c;
+
+                // Draw Constellation Lines with depth-aware opacity
+                c.lines.forEach(([i1, i2]) => {
+                    const st1 = c.stars[i1];
+                    const st2 = c.stars[i2];
+                    const x1 = cx + st1.ox * scale;
+                    const y1 = cy + st1.oy * scale;
+                    const x2 = cx + st2.ox * scale;
+                    const y2 = cy + st2.oy * scale;
+
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    if (isHovered) {
+                        ctx.strokeStyle = `rgba(232, 152, 60, ${isDark ? 0.55 : 0.4})`;
+                        ctx.lineWidth = 1.4 * Math.min(1.2, depth);
+                    } else {
+                        const lineAlpha = (isDark ? 0.18 : 0.1) * baseOpacity * depth;
+                        ctx.strokeStyle = `rgba(${starBaseR}, ${starBaseG}, ${starBaseB}, ${lineAlpha})`;
+                        ctx.lineWidth = 0.85 * Math.min(1.1, depth);
+                    }
+                    ctx.stroke();
+                });
+
+                // Draw Constellation Stars & Radiant Halos
+                c.stars.forEach((st) => {
+                    const sx = cx + st.ox * scale;
+                    const sy = cy + st.oy * scale;
+                    const starRadius = st.r * Math.min(1.25, Math.max(0.7, depth * 0.9));
+
+                    // Radiant outer glow for major stars
+                    if (st.bright || isHovered) {
+                        const haloRadius = starRadius * (isHovered ? 4.5 : 3.0);
+                        ctx.beginPath();
+                        ctx.arc(sx, sy, haloRadius, 0, Math.PI * 2);
+                        const haloGrad = ctx.createRadialGradient(sx, sy, starRadius * 0.4, sx, sy, haloRadius);
+                        if (st.color === 'orange' || isHovered) {
+                            haloGrad.addColorStop(0, `rgba(232, 152, 60, ${0.45 * baseOpacity})`);
+                            haloGrad.addColorStop(1, 'rgba(232, 152, 60, 0)');
+                        } else if (st.color === 'blue') {
+                            haloGrad.addColorStop(0, `rgba(96, 165, 250, ${0.45 * baseOpacity})`);
+                            haloGrad.addColorStop(1, 'rgba(96, 165, 250, 0)');
+                        } else {
+                            haloGrad.addColorStop(0, isDark ? `rgba(255, 255, 255, ${0.35 * baseOpacity})` : `rgba(24, 24, 27, ${0.25 * baseOpacity})`);
+                            haloGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                        }
+                        ctx.fillStyle = haloGrad;
+                        ctx.fill();
+                    }
+
+                    // Main Star Body
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, starRadius * (isHovered ? 1.2 : 1), 0, Math.PI * 2);
+                    if (st.color === 'orange') {
+                        ctx.fillStyle = isDark ? '#fba444' : '#d97706';
+                    } else if (st.color === 'blue') {
+                        ctx.fillStyle = isDark ? '#93c5fd' : '#2563eb';
+                    } else {
+                        ctx.fillStyle = isDark ? `rgba(255, 255, 255, ${baseOpacity})` : `rgba(24, 24, 27, ${baseOpacity})`;
+                    }
+                    ctx.fill();
+                });
+
+                // Easter Egg Label Render when near constellation
+                if (isHovered) {
+                    ctx.save();
+                    ctx.font = '600 11px Plus Jakarta Sans, sans-serif';
+                    ctx.fillStyle = isDark ? 'rgba(232, 152, 60, 0.95)' : 'rgba(194, 107, 18, 0.95)';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`✦ ${c.name} Constellation`, cx, cy + 90 * scale);
+                    ctx.font = '400 9px Plus Jakarta Sans, sans-serif';
+                    ctx.fillStyle = isDark ? 'rgba(161, 161, 170, 0.85)' : 'rgba(113, 113, 122, 0.85)';
+                    ctx.fillText(c.latin, cx, cy + 104 * scale);
+                    ctx.restore();
+                }
+            });
+
+            // 4. Periodic Shooting Stars
             const now = Date.now();
-            if (now - this.lastMeteorTime > 4500 && Math.random() < 0.35) {
+            if (now - this.lastMeteorTime > 4000 && Math.random() < 0.38) {
                 this.spawnMeteor();
                 this.lastMeteorTime = now;
             }
 
-            // Render Meteors / Shooting Stars
+            // 5. Render Meteors / Shooting Stars
             for (let i = this.meteors.length - 1; i >= 0; i--) {
                 const m = this.meteors[i];
                 m.x += m.vx;
@@ -171,8 +426,9 @@
                 const tailY = m.y - (m.vy / Math.hypot(m.vx, m.vy)) * m.length;
 
                 const grad = ctx.createLinearGradient(tailX, tailY, m.x, m.y);
-                grad.addColorStop(0, `rgba(${starR}, ${starG}, ${starB}, 0)`);
-                grad.addColorStop(1, isDark ? `rgba(255, 255, 255, ${m.alpha})` : `rgba(24, 24, 27, ${m.alpha * 0.85})`);
+                grad.addColorStop(0, `rgba(${starBaseR}, ${starBaseG}, ${starBaseB}, 0)`);
+                grad.addColorStop(0.7, `rgba(232, 152, 60, ${m.alpha * 0.5})`);
+                grad.addColorStop(1, isDark ? `rgba(255, 255, 255, ${m.alpha})` : `rgba(24, 24, 27, ${m.alpha * 0.9})`);
 
                 ctx.beginPath();
                 ctx.moveTo(tailX, tailY);
@@ -195,13 +451,13 @@
         data: {
             profile: {
                 username: 'Scholar',
-                pfp: 'star', // 'star', 'voyager', 'atom', 'quill', 'orbit'
+                pfp: 'star',
                 customAvatarUrl: null,
                 streak: 1,
                 lastActiveDate: new Date().toISOString().split('T')[0],
                 theme: 'light'
             },
-            metrics: [], // Custom user metrics: [{ id, name, current, target, unit }]
+            metrics: [],
             tasks: [],
             notes: [],
             events: [],
@@ -239,7 +495,6 @@
                 }
             }
 
-            // Ensure profile & metrics are clean
             this.data.profile = this.data.profile || {
                 username: 'Scholar',
                 pfp: 'star',
@@ -250,7 +505,7 @@
             };
             this.data.metrics = this.data.metrics || [];
 
-            // Check streak
+            // Check and update study streak
             const today = new Date().toISOString().split('T')[0];
             if (this.data.profile.lastActiveDate !== today) {
                 const last = new Date(this.data.profile.lastActiveDate || today);
@@ -294,7 +549,8 @@
                 voyager: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>`,
                 atom: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(45 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(-45 12 12)"/></svg>`,
                 quill: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg>`,
-                orbit: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9"/></svg>`
+                orbit: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9"/></svg>`,
+                scholar: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>`
             };
             return svgMap[pfpKey] || svgMap.star;
         },
@@ -317,9 +573,6 @@
             const dropStreak = document.getElementById('dropProfileStreak');
             if (dropName) dropName.textContent = p.username || 'Scholar';
             if (dropStreak) dropStreak.textContent = `${p.streak || 1} Day Streak`;
-
-            const dashGreetingName = document.getElementById('dashGreetingName');
-            if (dashGreetingName) dashGreetingName.textContent = p.username || 'Scholar';
         },
 
         async save() {
@@ -333,18 +586,86 @@
             } catch (e) {}
         },
 
-        async resetWorkspace() {
-            if (!confirm('Start a fresh blank slate? This will reset tasks, notes, courses, and flashcards.')) return;
+        openResetModal() {
+            const modal = document.getElementById('resetConfirmModal');
+            const expectedNameSpan = document.getElementById('resetConfirmExpectedName');
+            const input = document.getElementById('resetConfirmInput');
+            const btn = document.getElementById('executeResetBtn');
+            const err = document.getElementById('resetConfirmError');
+
+            if (!modal) return;
+
+            const expected = (this.data.profile?.username || 'Scholar').trim();
+            if (expectedNameSpan) expectedNameSpan.textContent = expected;
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+            if (btn) btn.disabled = true;
+            if (err) err.style.display = 'none';
+
+            modal.classList.add('show');
+        },
+
+        async executeReset() {
+            const input = document.getElementById('resetConfirmInput');
+            const expected = (this.data.profile?.username || 'Scholar').trim();
+            const val = (input?.value || '').trim();
+
+            if (val !== expected) {
+                const err = document.getElementById('resetConfirmError');
+                if (err) err.style.display = 'block';
+                return;
+            }
+
             try {
                 await fetch('/api/user-data/reset', { method: 'POST' });
             } catch (e) {}
+
             localStorage.removeItem('studyverse_user_data');
-            window.location.reload();
+            localStorage.removeItem('studyverse_pomodoro_state');
+
+            // Reset local in-memory state cleanly
+            this.data = {
+                uid: this.uid,
+                profile: {
+                    username: expected,
+                    pfp: this.data.profile?.pfp || 'star',
+                    customAvatarUrl: null,
+                    streak: 1,
+                    lastActiveDate: new Date().toISOString().split('T')[0],
+                    theme: this.data.profile?.theme || 'light'
+                },
+                metrics: [],
+                tasks: [],
+                notes: [],
+                events: [],
+                courses: [],
+                decks: [],
+                pomodoro: {
+                    completedSessions: 0,
+                    totalFocusMinutes: 0
+                }
+            };
+
+            const modal = document.getElementById('resetConfirmModal');
+            if (modal) modal.classList.remove('show');
+
+            // Refresh all components
+            Dashboard.render();
+            Flashcards.renderDecksList();
+            Tasks.render();
+            Notes.render();
+            Calendar.render();
+            Courses.render();
+            Pomodoro.reset();
+
+            Toast.show("Workspace reset to blank slate");
         }
     };
 
     /* ==========================================================================
-       3. PROFILE MODAL (EDIT NAME & PFP IMAGE OR PRESETS)
+       3. PROFILE MODAL (EDIT NAME & PFP)
        ========================================================================== */
     const ProfileModal = {
         selectedPreset: 'star',
@@ -360,7 +681,6 @@
 
             document.getElementById('profileEditUsernameInput').value = p.username || 'Scholar';
 
-            // Highlight selected preset
             document.querySelectorAll('.pfp-preset-opt').forEach(opt => {
                 opt.classList.toggle('active', opt.dataset.preset === this.selectedPreset);
             });
@@ -404,9 +724,11 @@
     };
 
     /* ==========================================================================
-       4. DASHBOARD & CUSTOM METRICS
+       4. DASHBOARD & DRAGGABLE CUSTOM METRIC WIDGETS
        ========================================================================== */
     const Dashboard = {
+        draggedMetricId: null,
+
         init() {
             this.bindEvents();
             this.render();
@@ -415,6 +737,9 @@
         bindEvents() {
             const addMetricBtn = document.getElementById('openAddMetricModalBtn');
             if (addMetricBtn) addMetricBtn.addEventListener('click', () => this.openAddMetricModal());
+
+            const floatingWidgetBtn = document.getElementById('floatingAddWidgetBtn');
+            if (floatingWidgetBtn) floatingWidgetBtn.addEventListener('click', () => this.openAddMetricModal());
 
             const saveMetricBtn = document.getElementById('saveCustomMetricBtn');
             if (saveMetricBtn) saveMetricBtn.addEventListener('click', () => this.saveCustomMetric());
@@ -446,7 +771,7 @@
 
             document.getElementById('addMetricModal').classList.remove('show');
             this.render();
-            Toast.show(`Added metric "${name}"`);
+            Toast.show(`Added widget "${name}"`);
         },
 
         stepMetric(id, delta) {
@@ -461,7 +786,34 @@
             Store.data.metrics = (Store.data.metrics || []).filter(item => item.id !== id);
             Store.save();
             this.render();
-            Toast.show("Metric removed");
+            Toast.show("Widget removed");
+        },
+
+        handleMetricDragStart(e, id) {
+            this.draggedMetricId = id;
+            e.dataTransfer.setData('text/plain', id);
+            e.currentTarget.classList.add('dragging');
+        },
+
+        handleMetricDragEnd(e) {
+            e.currentTarget.classList.remove('dragging');
+            document.querySelectorAll('.custom-metric-card').forEach(c => c.classList.remove('drag-target-hover'));
+        },
+
+        handleMetricDrop(e, targetId) {
+            e.preventDefault();
+            if (!this.draggedMetricId || this.draggedMetricId === targetId) return;
+
+            const metrics = Store.data.metrics || [];
+            const srcIdx = metrics.findIndex(m => m.id === this.draggedMetricId);
+            const targetIdx = metrics.findIndex(m => m.id === targetId);
+
+            if (srcIdx > -1 && targetIdx > -1) {
+                const [moved] = metrics.splice(srcIdx, 1);
+                metrics.splice(targetIdx, 0, moved);
+                Store.save();
+                this.render();
+            }
         },
 
         render() {
@@ -469,7 +821,11 @@
 
             // 1. Metric: Study Streak
             const streakCountEl = document.getElementById('dashMetricStreak');
-            if (streakCountEl) streakCountEl.textContent = `${Store.data.profile.streak || 1} Days`;
+            if (streakCountEl) {
+                const st = Store.data.profile.streak || 1;
+                streakCountEl.textContent = `${st} ${st === 1 ? 'Day' : 'Days'}`;
+                streakCountEl.classList.add('highlight-orange');
+            }
 
             // 2. Metric: Focus Time Today
             const pomoMins = Store.data.pomodoro?.totalFocusMinutes || 0;
@@ -493,7 +849,7 @@
             const completedCount = tasks.filter(t => t.completed).length;
             const taskRate = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
             const taskRateEl = document.getElementById('dashMetricTasks');
-            if (taskRateEl) taskRateEl.textContent = `${completedCount} / ${tasks.length} (${taskRate}%)`;
+            if (taskRateEl) taskRateEl.textContent = `${completedCount} / ${tasks.length}`;
 
             // Weekly Study Velocity Bars
             const velocityDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -502,7 +858,7 @@
             if (barsWrap) {
                 barsWrap.innerHTML = velocityDays.map((day, idx) => {
                     const isToday = idx === todayIndex;
-                    const heightPercent = isToday ? Math.min(100, Math.max(15, (pomoMins / 60) * 100)) : 10;
+                    const heightPercent = isToday ? Math.min(100, Math.max(18, (pomoMins / 60) * 100)) : 10;
                     return `
                         <div class="velocity-bar-col">
                             <div class="velocity-bar-fill ${isToday ? 'active' : ''}" style="height:${heightPercent}%;"></div>
@@ -512,42 +868,44 @@
                 }).join('');
             }
 
-            // Custom Metrics Deck
+            // Custom Metrics Section (Hidden if empty, phone-widget style)
+            const metricsSection = document.getElementById('customMetricsSection');
             const customGrid = document.getElementById('customMetricsGrid');
-            if (customGrid) {
-                const metrics = Store.data.metrics || [];
-                if (metrics.length === 0) {
-                    customGrid.innerHTML = `
-                        <div style="grid-column: 1 / -1; padding:12px; font-size:0.82rem; color:var(--text-muted); text-align:center;">
-                            No custom metrics added yet. Click "+ Add Metric" to track custom study targets.
-                        </div>
-                    `;
-                } else {
-                    customGrid.innerHTML = metrics.map(m => {
-                        const pct = Math.min(100, Math.round(((m.current || 0) / (m.target || 1)) * 100));
-                        return `
-                            <div class="custom-metric-card">
-                                <div class="custom-metric-top">
-                                    <span class="custom-metric-name">${escapeHtml(m.name)}</span>
-                                    <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Dashboard.deleteMetric('${m.id}')">&times;</button>
-                                </div>
-                                <div class="custom-metric-val-row">
-                                    <span>${m.current} / ${m.target} ${escapeHtml(m.unit)}</span>
-                                    <span>${pct}%</span>
-                                </div>
-                                <div class="custom-metric-progress">
-                                    <div class="custom-metric-progress-fill" style="width:${pct}%;"></div>
-                                </div>
-                                <div style="display:flex; justify-content:flex-end; margin-top:2px;">
-                                    <div class="custom-metric-steppers">
-                                        <button onclick="window.StudyVerse.Dashboard.stepMetric('${m.id}', -1)">-</button>
-                                        <button onclick="window.StudyVerse.Dashboard.stepMetric('${m.id}', 1)">+</button>
-                                    </div>
+            const metrics = Store.data.metrics || [];
+
+            if (metricsSection) {
+                metricsSection.style.display = metrics.length > 0 ? 'block' : 'none';
+            }
+
+            if (customGrid && metrics.length > 0) {
+                customGrid.innerHTML = metrics.map(m => {
+                    const pct = Math.min(100, Math.round(((m.current || 0) / (m.target || 1)) * 100));
+                    return `
+                        <div class="custom-metric-card" draggable="true"
+                             ondragstart="window.StudyVerse.Dashboard.handleMetricDragStart(event, '${m.id}')"
+                             ondragend="window.StudyVerse.Dashboard.handleMetricDragEnd(event)"
+                             ondragover="event.preventDefault()"
+                             ondrop="window.StudyVerse.Dashboard.handleMetricDrop(event, '${m.id}')">
+                            <div class="custom-metric-top">
+                                <span class="custom-metric-name">${escapeHtml(m.name)}</span>
+                                <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Dashboard.deleteMetric('${m.id}')">&times;</button>
+                            </div>
+                            <div class="custom-metric-val-row">
+                                <span>${m.current} / ${m.target} ${escapeHtml(m.unit)}</span>
+                                <span>${pct}%</span>
+                            </div>
+                            <div class="custom-metric-progress">
+                                <div class="custom-metric-progress-fill" style="width:${pct}%;"></div>
+                            </div>
+                            <div style="display:flex; justify-content:flex-end; margin-top:2px;">
+                                <div class="custom-metric-steppers">
+                                    <button onclick="window.StudyVerse.Dashboard.stepMetric('${m.id}', -1)">-</button>
+                                    <button onclick="window.StudyVerse.Dashboard.stepMetric('${m.id}', 1)">+</button>
                                 </div>
                             </div>
-                        `;
-                    }).join('');
-                }
+                        </div>
+                    `;
+                }).join('');
             }
 
             // Overview previews
@@ -555,24 +913,24 @@
             const taskPreview = document.getElementById('dashTodayTasksList');
             if (taskPreview) {
                 taskPreview.innerHTML = todayTasks.length === 0
-                    ? `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No tasks for today.</div>`
+                    ? `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No pending tasks for today.</div>`
                     : todayTasks.slice(0, 3).map(t => `
                         <div style="display:flex; align-items:center; gap:8px; padding:6px 0; font-size:0.85rem; border-bottom:1px solid var(--border-subtle);">
                             <div class="task-check" onclick="window.StudyVerse.Tasks.toggleTask('${t.id}')"></div>
-                            <span>${escapeHtml(t.title)}</span>
+                            <span style="font-weight:500;">${escapeHtml(t.title)}</span>
                         </div>
                     `).join('');
             }
 
-            const events = Store.data.events || [];
+            const events = Calendar.getSortedEvents();
             const eventPreview = document.getElementById('dashEventsList');
             if (eventPreview) {
                 eventPreview.innerHTML = events.length === 0
-                    ? `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No events scheduled.</div>`
+                    ? `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No upcoming events scheduled.</div>`
                     : events.slice(0, 3).map(e => `
-                        <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:0.85rem; border-bottom:1px solid var(--border-subtle);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:0.85rem; border-bottom:1px solid var(--border-subtle);">
                             <span style="font-weight:600;">${escapeHtml(e.title)}</span>
-                            <span style="color:var(--text-muted); font-size:0.75rem;">${e.date}</span>
+                            <span style="color:var(--text-muted); font-size:0.75rem; font-family:var(--font-mono);">${e.time || e.date}</span>
                         </div>
                     `).join('');
             }
@@ -580,10 +938,10 @@
             const deckPreview = document.getElementById('dashDecksList');
             if (deckPreview) {
                 deckPreview.innerHTML = decks.length === 0
-                    ? `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No decks created.</div>`
+                    ? `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No decks created yet.</div>`
                     : decks.slice(0, 3).map(d => `
                         <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:0.85rem; border-bottom:1px solid var(--border-subtle);">
-                            <span>${escapeHtml(d.title)}</span>
+                            <span style="font-weight:600;">${escapeHtml(d.title)}</span>
                             <button class="btn btn-secondary btn-sm" onclick="window.StudyVerse.Flashcards.startPracticeById('${d.id}')">Practice</button>
                         </div>
                     `).join('');
@@ -742,10 +1100,10 @@
                 Store.data.pomodoro.completedSessions = (Store.data.pomodoro.completedSessions || 0) + 1;
                 Store.data.pomodoro.totalFocusMinutes = (Store.data.pomodoro.totalFocusMinutes || 0) + mins;
                 Store.save();
-                Toast.show(`Focus session finished (${mins}m logged)`);
+                Toast.show(`Focus session finished (+${mins}m logged)`);
                 this.setMode('shortBreak');
             } else {
-                Toast.show("Break over. Ready for next session?");
+                Toast.show("Break finished. Ready to focus?");
                 this.setMode('focus');
             }
 
@@ -797,7 +1155,7 @@
     };
 
     /* ==========================================================================
-       6. FLASHCARDS STUDIO (ANKI PRACTICE + METEOR SHOWER ON 10 CORRECT)
+       6. FLASHCARDS STUDIO (ANKI PRACTICE + METEOR SHOWER STRICT COMBO)
        ========================================================================== */
     const Flashcards = {
         activeTab: 'generator',
@@ -903,7 +1261,7 @@
                     const badgeText = document.getElementById('fcBadgeFileName');
                     if (badge && badgeText) {
                         badgeText.textContent = `${json.fileName} (${Math.round(json.fileSize / 1024)} KB)`;
-                        badge.classList.add('show');
+                        badge.style.display = 'flex';
                     }
                     const titleInput = document.getElementById('fcDeckTitle');
                     if (titleInput && !titleInput.value) {
@@ -1017,26 +1375,13 @@
             const courseSelect = document.getElementById('fcCourseSelect');
             if (courseSelect) {
                 const courses = Store.data.courses || [];
-                courseSelect.innerHTML = `<option value="">No Course</option>` +
+                courseSelect.innerHTML = `<option value="">No Course (General)</option>` +
                     courses.map(c => `<option value="${c.id}">${escapeHtml(c.code)} - ${escapeHtml(c.title)}</option>`).join('');
             }
 
             const decks = Store.data.decks || [];
 
-            if (decks.length === 0) {
-                listEl.innerHTML = `
-                    <div class="card" style="grid-column: 1 / -1; text-align:center; padding:32px;">
-                        <h4 style="font-size:0.95rem; font-weight:600;">No Flashcard Decks</h4>
-                        <p style="font-size:0.82rem; color:var(--text-muted); margin:6px 0 16px;">Generate cards from a PDF or notes.</p>
-                        <button class="btn btn-primary btn-sm" onclick="window.StudyVerse.Flashcards.switchTab('generator')">
-                            Create First Deck
-                        </button>
-                    </div>
-                `;
-                return;
-            }
-
-            listEl.innerHTML = decks.map(deck => {
+            let html = decks.map(deck => {
                 const course = (Store.data.courses || []).find(c => c.id === deck.courseId);
                 const total = deck.cards?.length || 0;
                 const mastered = (deck.cards || []).filter(c => (c.repetitions || 0) >= 2).length;
@@ -1047,13 +1392,13 @@
                          ondragstart="window.StudyVerse.Flashcards.handleDeckDragStart(event, '${deck.id}')"
                          ondragend="window.StudyVerse.Flashcards.handleDeckDragEnd(event)">
                         <div>
-                            ${course ? `<div class="deck-course-tag">${escapeHtml(course.code)}</div>` : ''}
+                            ${course ? `<div class="deck-course-tag" style="color:${course.color === 'blue' ? '#3b82f6' : course.color === 'emerald' ? '#10b981' : course.color === 'purple' ? '#8b5cf6' : course.color === 'rose' ? '#f43f5e' : 'var(--sv-orange)'};">${escapeHtml(course.code)}</div>` : ''}
                             <div class="deck-header">
                                 <h3 class="deck-title">${escapeHtml(deck.title)}</h3>
                                 <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">${total} cards</span>
                             </div>
                             <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:14px;">
-                                Mastery: ${pct}%
+                                Mastery: <span style="font-weight:600; color:var(--text-primary);">${pct}%</span>
                             </div>
                         </div>
                         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -1065,17 +1410,34 @@
                     </div>
                 `;
             }).join('');
+
+            // Always render 1 to 2 Ghost / Phantom Deck Cards to invite filling slots
+            const ghostSlotsCount = decks.length === 0 ? 3 : (decks.length < 3 ? 2 : 1);
+            for (let i = 0; i < ghostSlotsCount; i++) {
+                html += `
+                    <div class="ghost-deck-card" onclick="window.StudyVerse.Flashcards.switchTab('generator')">
+                        <div class="ghost-deck-icon">+</div>
+                        <div style="font-weight:600; font-size:0.88rem;">New Deck Slot</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Click to generate with AI or paste notes</div>
+                    </div>
+                `;
+            }
+
+            listEl.innerHTML = html;
         },
 
         handleDeckDragStart(e, deckId) {
             this.draggedDeckId = deckId;
             e.dataTransfer.setData('text/plain', deckId);
-            e.target.classList.add('dragging');
+            e.dataTransfer.setData('studyverse/type', 'deck');
+            e.currentTarget.classList.add('dragging');
+            window.StudyVerse.draggedPayload = { type: 'deck', id: deckId };
         },
 
         handleDeckDragEnd(e) {
-            e.target.classList.remove('dragging');
+            e.currentTarget.classList.remove('dragging');
             document.querySelectorAll('.course-card').forEach(c => c.classList.remove('drag-target-hover'));
+            window.StudyVerse.draggedPayload = null;
         },
 
         startPracticeById(deckId) {
@@ -1088,7 +1450,7 @@
             this.currentPracticeDeck = deck;
             this.currentCardIndex = 0;
             this.isFlipped = false;
-            this.consecutiveCorrectStreak = 0;
+            this.consecutiveCorrectStreak = 0; // Strict streak reset on practice start
 
             this.switchTab('practice');
             document.getElementById('ankiPracticeScreen').style.display = 'block';
@@ -1159,11 +1521,12 @@
             card.interval = card.interval || 0;
             card.easeFactor = card.easeFactor || 2.5;
 
+            // BUG FIX: If rating is 'again' (wrong answer), STRICTLY reset combo streak to 0
             if (rating === 'again') {
                 card.repetitions = 0;
                 card.interval = 1;
-                deck.cards.push(card);
-                this.consecutiveCorrectStreak = 0;
+                deck.cards.push(card); // Re-queue card for end of session
+                this.consecutiveCorrectStreak = 0; // Strict combo reset
             } else if (rating === 'hard') {
                 card.interval = Math.max(1, Math.round((card.interval || 1) * 1.2));
                 this.consecutiveCorrectStreak++;
@@ -1177,9 +1540,9 @@
                 this.consecutiveCorrectStreak++;
             }
 
-            // METEOR SHOWER TRIGGER AT 10 CORRECT IN A ROW
+            // TRIGGER METEOR SHOWER STRICTLY AT 10 CONSECUTIVE CORRECT ANSWERS
             if (this.consecutiveCorrectStreak === 10 || (this.consecutiveCorrectStreak > 10 && this.consecutiveCorrectStreak % 10 === 0)) {
-                Constellations.triggerMeteorShower(24);
+                Constellations.triggerMeteorShower(26);
             }
 
             Store.save();
@@ -1193,7 +1556,7 @@
         },
 
         deleteDeck(deckId) {
-            if (!confirm('Delete deck?')) return;
+            if (!confirm('Delete this flashcard deck?')) return;
             Store.data.decks = (Store.data.decks || []).filter(d => d.id !== deckId);
             Store.save();
             this.renderDecksList();
@@ -1316,8 +1679,8 @@
 
             if (tasks.length === 0) {
                 listEl.innerHTML = `
-                    <div class="card" style="text-align:center; padding:24px; color:var(--text-muted); font-size:0.84rem;">
-                        No tasks. Type a task above and press Enter.
+                    <div class="card" style="text-align:center; padding:30px; color:var(--text-muted); font-size:0.86rem;">
+                        No study tasks yet. Type a task above and press Enter.
                     </div>
                 `;
                 return;
@@ -1358,11 +1721,11 @@
                             <div class="task-check ${t.completed ? 'checked' : ''}" onclick="window.StudyVerse.Tasks.toggleTask('${t.id}')">
                                 ${t.completed ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
                             </div>
-                            <span style="font-size:0.88rem; ${t.completed ? 'text-decoration:line-through; color:var(--text-dim);' : ''}">${escapeHtml(t.title)}</span>
+                            <span style="font-size:0.88rem; font-weight:500; ${t.completed ? 'text-decoration:line-through; color:var(--text-dim);' : ''}">${escapeHtml(t.title)}</span>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px; font-size:0.75rem; color:var(--text-muted);">
                             ${subs.length > 0 ? `<span style="font-family:var(--font-mono);">${completedSubs}/${subs.length} sub</span>` : ''}
-                            ${t.isToday ? `<span style="color:var(--sv-orange); font-weight:600;">Today</span>` : ''}
+                            ${t.isToday ? `<span style="color:var(--sv-orange); font-weight:700;">Today</span>` : ''}
                             <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Tasks.deleteTask('${t.id}')">&times;</button>
                         </div>
                     </div>
@@ -1392,7 +1755,7 @@
     };
 
     /* ==========================================================================
-       8. NOTES ENGINE
+       8. NOTES ENGINE (DRAGGABLE NOTES & EMPTY STATE HEADLINE)
        ========================================================================== */
     const Notes = {
         selectedNoteId: null,
@@ -1485,24 +1848,47 @@
             Toast.show('Note deleted.');
         },
 
+        handleNoteDragStart(e, noteId) {
+            e.dataTransfer.setData('text/plain', noteId);
+            e.dataTransfer.setData('studyverse/type', 'note');
+            e.currentTarget.classList.add('dragging');
+            window.StudyVerse.draggedPayload = { type: 'note', id: noteId };
+        },
+
+        handleNoteDragEnd(e) {
+            e.currentTarget.classList.remove('dragging');
+            document.querySelectorAll('.course-card').forEach(c => c.classList.remove('drag-target-hover'));
+            window.StudyVerse.draggedPayload = null;
+        },
+
         render() {
             const listEl = document.getElementById('notesList');
+            const editorPane = document.getElementById('noteEditorPane');
             const notes = Store.data.notes || [];
 
             const courseSelect = document.getElementById('noteCourseSelect');
             if (courseSelect) {
                 const courses = Store.data.courses || [];
-                courseSelect.innerHTML = `<option value="">No Course</option>` +
+                courseSelect.innerHTML = `<option value="">No Course (General)</option>` +
                     courses.map(c => `<option value="${c.id}">${escapeHtml(c.code)} - ${escapeHtml(c.title)}</option>`).join('');
             }
 
+            // Clear, elegant empty state when there are no notes
             if (notes.length === 0) {
-                if (listEl) listEl.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted); padding:10px;">No notes. Click "+ New Note".</div>`;
-                document.getElementById('noteEditorPane').style.display = 'none';
+                if (listEl) {
+                    listEl.innerHTML = `
+                        <div class="notes-empty-state">
+                            <div class="notes-empty-title">No notes yet</div>
+                            <p style="font-size:0.78rem; color:var(--text-muted); margin:4px 0 14px;">Capture lecture summaries, ideas, and study notes.</p>
+                            <button class="btn btn-primary btn-sm" onclick="window.StudyVerse.Notes.createNote()">+ Create First Note</button>
+                        </div>
+                    `;
+                }
+                if (editorPane) editorPane.style.display = 'none';
                 return;
             }
 
-            document.getElementById('noteEditorPane').style.display = 'flex';
+            if (editorPane) editorPane.style.display = 'flex';
             if (!this.selectedNoteId || !notes.find(n => n.id === this.selectedNoteId)) {
                 this.selectedNoteId = notes[0].id;
             }
@@ -1519,10 +1905,13 @@
                     const course = (Store.data.courses || []).find(c => c.id === n.courseId);
                     return `
                         <button class="note-item-btn ${n.id === this.selectedNoteId ? 'active' : ''}" data-id="${n.id}"
+                                draggable="true"
+                                ondragstart="window.StudyVerse.Notes.handleNoteDragStart(event, '${n.id}')"
+                                ondragend="window.StudyVerse.Notes.handleNoteDragEnd(event)"
                                 onclick="window.StudyVerse.Notes.selectNote('${n.id}')">
-                            <div class="note-item-title" style="font-weight:600; font-size:0.85rem; color:var(--text-primary);">${escapeHtml(n.title)}</div>
-                            <div style="font-size:0.72rem; color:var(--text-muted); display:flex; gap:4px;">
-                                ${course ? `<span style="color:var(--sv-orange); font-weight:600;">${escapeHtml(course.code)}</span><span>·</span>` : ''}
+                            <div class="note-item-title" style="font-weight:600; font-size:0.86rem; color:var(--text-primary);">${escapeHtml(n.title)}</div>
+                            <div style="font-size:0.72rem; color:var(--text-muted); display:flex; gap:4px; align-items:center; margin-top:2px;">
+                                ${course ? `<span style="color:var(--sv-orange); font-weight:700;">${escapeHtml(course.code)}</span><span>·</span>` : ''}
                                 <span>${new Date(n.updatedAt).toLocaleDateString()}</span>
                             </div>
                         </button>
@@ -1538,7 +1927,7 @@
     };
 
     /* ==========================================================================
-       9. FUNCTIONAL CALENDAR (MONTH & WEEKDAYS + DAY INSPECTOR MODAL)
+       9. FUNCTIONAL CALENDAR (AUTO-SORTED CHRONOLOGICALLY BY TIME)
        ========================================================================== */
     const Calendar = {
         viewMode: 'month',
@@ -1590,6 +1979,26 @@
             if (saveEventBtn) saveEventBtn.addEventListener('click', () => this.saveEventFromModal());
         },
 
+        // Sort events chronologically by start time (earliest first)
+        getSortedEvents(dateFilter = null) {
+            let list = Store.data.events || [];
+            if (dateFilter) {
+                list = list.filter(e => e.date === dateFilter);
+            }
+
+            return list.slice().sort((a, b) => {
+                const parseTimeScore = (tStr) => {
+                    if (!tStr || tStr.toLowerCase() === 'all day') return -1;
+                    const match = tStr.match(/(\d{1,2}):(\d{2})/);
+                    if (!match) return 9999;
+                    return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+                };
+                const scoreA = parseTimeScore(a.time);
+                const scoreB = parseTimeScore(b.time);
+                return scoreA - scoreB;
+            });
+        },
+
         openInspector(dateStr) {
             this.selectedDateStr = dateStr;
             const modal = document.getElementById('calDayInspectorModal');
@@ -1614,10 +2023,10 @@
             const listEl = document.getElementById('calInspectorEventsList');
             if (!listEl || !this.selectedDateStr) return;
 
-            const events = (Store.data.events || []).filter(e => e.date === this.selectedDateStr);
+            const events = this.getSortedEvents(this.selectedDateStr);
 
             if (events.length === 0) {
-                listEl.innerHTML = `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No events scheduled for this day.</div>`;
+                listEl.innerHTML = `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No events scheduled for this day yet.</div>`;
                 return;
             }
 
@@ -1625,12 +2034,12 @@
                 <div class="card" style="padding:10px 12px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:flex-start;">
                     <div>
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-weight:600; font-size:0.9rem; color:var(--text-primary);">${escapeHtml(e.title)}</span>
-                            <span style="font-size:0.7rem; font-weight:600; padding:1px 6px; border-radius:4px; background:var(--sv-orange-light); color:var(--sv-orange);">
+                            <span style="font-weight:700; font-size:0.9rem; color:var(--text-primary);">${escapeHtml(e.title)}</span>
+                            <span style="font-size:0.7rem; font-weight:700; padding:1px 6px; border-radius:4px; background:var(--sv-orange-light); color:var(--sv-orange);">
                                 ${escapeHtml(e.tag || 'General')}
                             </span>
                         </div>
-                        ${e.time ? `<div style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted); margin-top:2px;">${escapeHtml(e.time)}</div>` : ''}
+                        ${e.time ? `<div style="font-family:var(--font-mono); font-size:0.76rem; color:var(--text-muted); margin-top:2px; font-weight:600;">${escapeHtml(e.time)}</div>` : ''}
                         ${e.desc ? `<div style="font-size:0.8rem; color:var(--text-secondary); margin-top:3px;">${escapeHtml(e.desc)}</div>` : ''}
                     </div>
                     <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Calendar.deleteEvent('${e.id}')">&times;</button>
@@ -1709,7 +2118,6 @@
             const firstDay = new Date(this.currentYear, this.currentMonth, 1).getDay();
             const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
             const today = new Date();
-            const events = Store.data.events || [];
 
             let html = '';
             for (let i = 0; i < firstDay; i++) {
@@ -1719,14 +2127,16 @@
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateKey = `${this.currentYear}-${String(this.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                 const isToday = today.getDate() === day && today.getMonth() === this.currentMonth && today.getFullYear() === this.currentYear;
-                const dayEvents = events.filter(e => e.date === dateKey);
+                const dayEvents = this.getSortedEvents(dateKey);
 
                 html += `
                     <div class="cal-cell ${isToday ? 'today' : ''}" onclick="window.StudyVerse.Calendar.openInspector('${dateKey}')">
                         <div class="cal-cell-num">${day}</div>
+                        <div class="cal-cell-add-icon">+</div>
                         ${dayEvents.map(ev => `
-                            <div class="cal-event-pill" title="${escapeHtml(ev.title)}">
-                                ${escapeHtml(ev.title)}
+                            <div class="cal-event-pill" title="${escapeHtml(ev.title)} (${escapeHtml(ev.time || '')})">
+                                ${ev.time && ev.time !== 'All Day' ? `<span class="ev-time">${escapeHtml(ev.time.split('-')[0].trim())}</span>` : ''}
+                                <span>${escapeHtml(ev.title)}</span>
                             </div>
                         `).join('')}
                     </div>
@@ -1744,7 +2154,6 @@
             sun.setDate(today.getDate() - today.getDay());
 
             const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-            const events = Store.data.events || [];
 
             let html = '';
             for (let i = 0; i < 7; i++) {
@@ -1753,21 +2162,21 @@
 
                 const dateKey = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
                 const isToday = today.toDateString() === dayDate.toDateString();
-                const dayEvents = events.filter(e => e.date === dateKey);
+                const dayEvents = this.getSortedEvents(dateKey); // Sorted chronologically
 
                 html += `
                     <div class="week-col" onclick="window.StudyVerse.Calendar.openInspector('${dateKey}')">
-                        <div class="week-col-header" style="${isToday ? 'color:var(--sv-orange); font-weight:700;' : ''}">
+                        <div class="week-col-header" style="${isToday ? 'color:var(--sv-orange); font-weight:800;' : ''}">
                             ${dayNames[i].slice(0, 3)} ${dayDate.getDate()}
                         </div>
                         <div class="week-col-body">
                             ${dayEvents.map(ev => `
                                 <div class="card" style="padding:6px 8px; font-size:0.75rem;">
-                                    <div style="font-weight:600; color:var(--text-primary);">${escapeHtml(ev.title)}</div>
-                                    <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--text-muted);">${escapeHtml(ev.time || '')}</div>
+                                    <div style="font-weight:700; color:var(--text-primary);">${escapeHtml(ev.title)}</div>
+                                    <div style="font-family:var(--font-mono); font-size:0.7rem; color:var(--sv-orange); font-weight:600;">${escapeHtml(ev.time || 'All Day')}</div>
                                 </div>
                             `).join('')}
-                            ${dayEvents.length === 0 ? `<div style="text-align:center; padding-top:16px; font-size:0.72rem; color:var(--text-dim);">+ Add Event</div>` : ''}
+                            ${dayEvents.length === 0 ? `<div style="text-align:center; padding-top:16px; font-size:0.74rem; color:var(--text-dim); font-weight:500;">+ Add Event</div>` : ''}
                         </div>
                     </div>
                 `;
@@ -1777,9 +2186,11 @@
     };
 
     /* ==========================================================================
-       10. COURSES ENGINE (MODAL ADD COURSE & DRAG-AND-DROP EMBEDS)
+       10. COURSES ENGINE (COLOR ACCENTS & DRAG-AND-DROP EMBEDS)
        ========================================================================== */
     const Courses = {
+        selectedColor: 'orange',
+
         init() {
             this.bindEvents();
             this.render();
@@ -1791,6 +2202,15 @@
 
             const saveBtn = document.getElementById('saveNewCourseBtn');
             if (saveBtn) saveBtn.addEventListener('click', () => this.saveNewCourse());
+
+            // Color Palette Selector in Add Course Modal
+            document.querySelectorAll('#newCourseColorPalette .course-color-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('#newCourseColorPalette .course-color-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    this.selectedColor = btn.dataset.color || 'orange';
+                });
+            });
         },
 
         openAddCourseModal() {
@@ -1798,6 +2218,10 @@
             document.getElementById('newCourseTitle').value = '';
             document.getElementById('newCourseInstructor').value = '';
             document.getElementById('newCourseLocation').value = '';
+            this.selectedColor = 'orange';
+            document.querySelectorAll('#newCourseColorPalette .course-color-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.color === 'orange');
+            });
             document.getElementById('addCourseModal').classList.add('show');
         },
 
@@ -1806,6 +2230,7 @@
             const title = (document.getElementById('newCourseTitle')?.value || '').trim();
             const prof = (document.getElementById('newCourseInstructor')?.value || '').trim() || 'TBA';
             const loc = (document.getElementById('newCourseLocation')?.value || '').trim() || 'Campus';
+            const color = this.selectedColor || 'orange';
 
             if (!code || !title) {
                 alert('Please enter both Course Code (e.g. CS101) and Course Title.');
@@ -1818,6 +2243,7 @@
                 title: title,
                 instructor: prof,
                 location: loc,
+                color: color,
                 createdAt: new Date().toISOString()
             };
 
@@ -1843,18 +2269,39 @@
             e.preventDefault();
             e.currentTarget.classList.remove('drag-target-hover');
 
-            const deckId = e.dataTransfer.getData('text/plain') || Flashcards.draggedDeckId;
-            if (!deckId) return;
-
-            const deck = (Store.data.decks || []).find(d => d.id === deckId);
+            const payload = window.StudyVerse.draggedPayload;
             const course = (Store.data.courses || []).find(c => c.id === courseId);
+            if (!course) return;
 
-            if (deck && course) {
-                deck.courseId = courseId;
-                Store.save();
-                Toast.show(`Embedded "${deck.title}" into ${course.code}`);
-                this.render();
-                Flashcards.renderDecksList();
+            if (payload && payload.type === 'deck') {
+                const deck = (Store.data.decks || []).find(d => d.id === payload.id);
+                if (deck) {
+                    deck.courseId = courseId;
+                    Store.save();
+                    Toast.show(`Assigned "${deck.title}" to ${course.code}`);
+                    this.render();
+                    Flashcards.renderDecksList();
+                }
+            } else if (payload && payload.type === 'note') {
+                const note = (Store.data.notes || []).find(n => n.id === payload.id);
+                if (note) {
+                    note.courseId = courseId;
+                    Store.save();
+                    Toast.show(`Assigned note "${note.title}" to ${course.code}`);
+                    this.render();
+                    Notes.render();
+                }
+            } else {
+                const plainId = e.dataTransfer.getData('text/plain');
+                if (plainId) {
+                    const deck = (Store.data.decks || []).find(d => d.id === plainId);
+                    if (deck) {
+                        deck.courseId = courseId;
+                        Store.save();
+                        Toast.show(`Assigned "${deck.title}" to ${course.code}`);
+                        this.render();
+                    }
+                }
             }
         },
 
@@ -1874,7 +2321,7 @@
             const decksList = document.getElementById('courseModalDecksList');
             if (decksList) {
                 decksList.innerHTML = linkedDecks.length === 0
-                    ? `<div style="font-size:0.8rem; color:var(--text-muted);">No flashcards embedded yet. Drag a deck onto this course card or generate cards.</div>`
+                    ? `<div style="font-size:0.8rem; color:var(--text-muted); padding:6px 0;">No flashcard decks linked yet. Drag a deck card onto this course to link it.</div>`
                     : linkedDecks.map(d => `
                         <div class="card" style="padding:10px 14px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
                             <div>
@@ -1889,7 +2336,7 @@
             const notesList = document.getElementById('courseModalNotesList');
             if (notesList) {
                 notesList.innerHTML = linkedNotes.length === 0
-                    ? `<div style="font-size:0.8rem; color:var(--text-muted);">No notes embedded for this course.</div>`
+                    ? `<div style="font-size:0.8rem; color:var(--text-muted); padding:6px 0;">No notes linked for this course yet.</div>`
                     : linkedNotes.map(n => `
                         <div class="card" style="padding:10px 14px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
                             <span style="font-weight:600; font-size:0.86rem;">${escapeHtml(n.title)}</span>
@@ -1923,9 +2370,9 @@
 
             if (courses.length === 0) {
                 grid.innerHTML = `
-                    <div class="card" style="grid-column: 1 / -1; text-align:center; padding:32px;">
-                        <h4 style="font-size:0.95rem; font-weight:600;">No Courses Added</h4>
-                        <p style="font-size:0.82rem; color:var(--text-muted); margin:6px 0 16px;">Add your enrolled classes to link decks and notes.</p>
+                    <div class="card" style="grid-column: 1 / -1; text-align:center; padding:36px;">
+                        <h4 style="font-size:1rem; font-weight:700;">No Courses Added</h4>
+                        <p style="font-size:0.82rem; color:var(--text-muted); margin:6px 0 18px;">Add your enrolled classes to link decks and notes.</p>
                         <button class="btn btn-primary btn-sm" onclick="window.StudyVerse.Courses.openAddCourseModal()">+ Add Course</button>
                     </div>
                 `;
@@ -1937,7 +2384,7 @@
                 const linkedNotes = (Store.data.notes || []).filter(n => n.courseId === c.id);
 
                 return `
-                    <div class="course-card"
+                    <div class="course-card" data-color="${c.color || 'orange'}"
                          ondragover="window.StudyVerse.Courses.handleDragOver(event)"
                          ondragleave="window.StudyVerse.Courses.handleDragLeave(event)"
                          ondrop="window.StudyVerse.Courses.handleDrop(event, '${c.id}')">
@@ -1952,7 +2399,7 @@
                             <div class="course-embedded-chips">
                                 ${linkedDecks.map(d => `<span class="course-embedded-chip">Deck: ${escapeHtml(d.title)}</span>`).join('')}
                                 ${linkedNotes.map(n => `<span class="course-embedded-chip">Note: ${escapeHtml(n.title)}</span>`).join('')}
-                                ${linkedDecks.length === 0 && linkedNotes.length === 0 ? `<span style="font-size:0.74rem; color:var(--text-dim);">(Drag & drop decks or notes here)</span>` : ''}
+                                ${linkedDecks.length === 0 && linkedNotes.length === 0 ? `<span style="font-size:0.74rem; color:var(--text-dim);">(Drag & drop flashcards or notes here)</span>` : ''}
                             </div>
                         </div>
 
@@ -1969,9 +2416,11 @@
     };
 
     /* ==========================================================================
-       11. SPA ROUTER & PROFILE DROPDOWN
+       11. SPA ROUTER & PROFILE DROPDOWN WITH DRAG-HOVER SECTION SWITCHING
        ========================================================================== */
     const Router = {
+        dragHoverTimer: null,
+
         init() {
             window.addEventListener('hashchange', () => this.handleHash());
             window.addEventListener('popstate', () => this.handleHash());
@@ -1980,6 +2429,30 @@
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     this.navigate(btn.dataset.route);
+                });
+
+                // DRAG HOVER SECTION SWITCHING (Drag deck/note over nav item to switch section immediately)
+                btn.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    btn.classList.add('drag-hover-target');
+                    if (!this.dragHoverTimer) {
+                        this.dragHoverTimer = setTimeout(() => {
+                            this.navigate(btn.dataset.route);
+                            this.dragHoverTimer = null;
+                        }, 180);
+                    }
+                });
+
+                btn.addEventListener('dragleave', () => {
+                    btn.classList.remove('drag-hover-target');
+                    clearTimeout(this.dragHoverTimer);
+                    this.dragHoverTimer = null;
+                });
+
+                btn.addEventListener('drop', () => {
+                    btn.classList.remove('drag-hover-target');
+                    clearTimeout(this.dragHoverTimer);
+                    this.dragHoverTimer = null;
                 });
             });
 
@@ -2020,7 +2493,22 @@
 
             const resetBtn = document.getElementById('dropResetBtn');
             if (resetBtn) {
-                resetBtn.addEventListener('click', () => Store.resetWorkspace());
+                resetBtn.addEventListener('click', () => {
+                    dropdown.classList.remove('show');
+                    Store.openResetModal();
+                });
+            }
+
+            // Reset Confirmation Modal Live Typing Validation
+            const resetInput = document.getElementById('resetConfirmInput');
+            const executeResetBtn = document.getElementById('executeResetBtn');
+            if (resetInput && executeResetBtn) {
+                resetInput.addEventListener('input', () => {
+                    const expected = (Store.data.profile?.username || 'Scholar').trim();
+                    const isMatch = resetInput.value.trim() === expected;
+                    executeResetBtn.disabled = !isMatch;
+                });
+                executeResetBtn.addEventListener('click', () => Store.executeReset());
             }
 
             // PFP Preset Selector in modal
@@ -2069,6 +2557,12 @@
             if (target) {
                 target.classList.add('active-view');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            // Only show floating custom metric widget button when viewing the dashboard
+            const floatingWidgetWrap = document.getElementById('floatingAddWidgetWrap');
+            if (floatingWidgetWrap) {
+                floatingWidgetWrap.style.display = (route === 'dashboard') ? 'block' : 'none';
             }
 
             if (route === 'dashboard') Dashboard.render();
@@ -2135,7 +2629,8 @@
             Dashboard,
             Router,
             Toast,
-            ProfileModal
+            ProfileModal,
+            draggedPayload: null
         };
     });
 
