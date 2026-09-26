@@ -426,6 +426,14 @@
             pomodoro: {
                 completedSessions: 0,
                 totalFocusMinutes: 0
+            },
+            classroom: {
+                connected: false,
+                user: null,
+                lastSynced: null,
+                classes: [],
+                upcoming: [],
+                recentPosts: []
             }
         },
 
@@ -603,6 +611,14 @@
                 pomodoro: {
                     completedSessions: 0,
                     totalFocusMinutes: 0
+                },
+                classroom: {
+                    connected: false,
+                    user: null,
+                    lastSynced: null,
+                    classes: [],
+                    upcoming: [],
+                    recentPosts: []
                 }
             };
 
@@ -615,6 +631,8 @@
             Notes.render();
             Calendar.render();
             Courses.render();
+            Classroom.render();
+            SettingsModal.render();
             Pomodoro.reset();
 
             Toast.show("Workspace reset to blank slate");
@@ -1096,9 +1114,14 @@
     };
 
     const Flashcards = {
-        activeTab: 'generator',
+        activeTab: 'decks',
         extractedText: '',
         generatedCards: [],
+        manualCards: [
+            { question: '', answer: '' },
+            { question: '', answer: '' },
+            { question: '', answer: '' }
+        ],
         currentPracticeDeck: null,
         currentCardIndex: 0,
         isFlipped: false,
@@ -1108,6 +1131,7 @@
         init() {
             this.bindEvents();
             this.renderDecksList();
+            this.renderManualCardsList();
         },
 
         bindEvents() {
@@ -1140,6 +1164,18 @@
 
             const saveDeckBtn = document.getElementById('fcSaveDeckBtn');
             if (saveDeckBtn) saveDeckBtn.addEventListener('click', () => this.saveGeneratedDeck());
+
+            const addCardTopBtn = document.getElementById('fcAddManualCardBtn');
+            if (addCardTopBtn) addCardTopBtn.addEventListener('click', () => this.addManualCardRow());
+
+            const addCardBottomBtn = document.getElementById('fcAddManualCardBottomBtn');
+            if (addCardBottomBtn) addCardBottomBtn.addEventListener('click', () => this.addManualCardRow());
+
+            const saveManualTopBtn = document.getElementById('fcSaveManualDeckBtn');
+            if (saveManualTopBtn) saveManualTopBtn.addEventListener('click', () => this.saveManualDeck());
+
+            const saveManualBottomBtn = document.getElementById('fcSaveManualDeckBottomBtn');
+            if (saveManualBottomBtn) saveManualBottomBtn.addEventListener('click', () => this.saveManualDeck());
 
             const ankiCard = document.getElementById('ankiCardContainer');
             if (ankiCard) ankiCard.addEventListener('click', () => this.flipCard());
@@ -1176,11 +1212,129 @@
                 t.classList.toggle('active', t.dataset.tab === tabId);
             });
 
-            document.getElementById('fcTabGenerator').style.display = tabId === 'generator' ? 'block' : 'none';
-            document.getElementById('fcTabDecks').style.display = tabId === 'decks' ? 'block' : 'none';
-            document.getElementById('fcTabPractice').style.display = tabId === 'practice' ? 'block' : 'none';
+            const genTab = document.getElementById('fcTabGenerator');
+            const decksTab = document.getElementById('fcTabDecks');
+            const manualTab = document.getElementById('fcTabManual');
+            const practiceTab = document.getElementById('fcTabPractice');
+
+            if (genTab) genTab.style.display = tabId === 'generator' ? 'block' : 'none';
+            if (decksTab) decksTab.style.display = tabId === 'decks' ? 'block' : 'none';
+            if (manualTab) manualTab.style.display = tabId === 'manual' ? 'block' : 'none';
+            if (practiceTab) practiceTab.style.display = tabId === 'practice' ? 'block' : 'none';
 
             if (tabId === 'decks') this.renderDecksList();
+            if (tabId === 'manual') {
+                this.updateCourseDropdowns();
+                this.renderManualCardsList();
+            }
+        },
+
+        updateCourseDropdowns() {
+            const courses = Store.data.courses || [];
+            const optionsHtml = `<option value="">No Course (General)</option>` +
+                courses.map(c => `<option value="${c.id}">${escapeHtml(c.code)} - ${escapeHtml(c.title)}</option>`).join('');
+
+            const genSelect = document.getElementById('fcCourseSelect');
+            const manualSelect = document.getElementById('fcManualCourseSelect');
+
+            if (genSelect) genSelect.innerHTML = optionsHtml;
+            if (manualSelect) manualSelect.innerHTML = optionsHtml;
+        },
+
+        addManualCardRow() {
+            this.manualCards.push({ question: '', answer: '' });
+            this.renderManualCardsList();
+        },
+
+        removeManualCardRow(index) {
+            if (this.manualCards.length <= 1) {
+                this.manualCards = [{ question: '', answer: '' }];
+            } else {
+                this.manualCards.splice(index, 1);
+            }
+            this.renderManualCardsList();
+        },
+
+        updateManualCardValue(index, field, value) {
+            if (this.manualCards[index]) {
+                this.manualCards[index][field] = value;
+            }
+        },
+
+        renderManualCardsList() {
+            const listEl = document.getElementById('fcManualCardsList');
+            const countLabel = document.getElementById('fcManualCardsCount');
+            if (!listEl) return;
+
+            if (countLabel) {
+                countLabel.textContent = `Cards (${this.manualCards.length})`;
+            }
+
+            listEl.innerHTML = this.manualCards.map((card, i) => `
+                <div class="manual-card-row">
+                    <div class="manual-card-index">#${i + 1}</div>
+                    <div class="manual-card-fields">
+                        <div class="manual-card-col">
+                            <label>Front / Question</label>
+                            <textarea class="manual-card-input" placeholder="e.g. Mitochondria function"
+                                      oninput="window.StudyVerse.Flashcards.updateManualCardValue(${i}, 'question', this.value)">${escapeHtml(card.question || '')}</textarea>
+                        </div>
+                        <div class="manual-card-col">
+                            <label>Back / Answer</label>
+                            <textarea class="manual-card-input" placeholder="e.g. Produces cellular ATP energy"
+                                      oninput="window.StudyVerse.Flashcards.updateManualCardValue(${i}, 'answer', this.value)">${escapeHtml(card.answer || '')}</textarea>
+                        </div>
+                    </div>
+                    <button class="manual-card-delete-btn" type="button" title="Delete card" onclick="window.StudyVerse.Flashcards.removeManualCardRow(${i})">&times;</button>
+                </div>
+            `).join('');
+        },
+
+        saveManualDeck() {
+            const title = (document.getElementById('fcManualDeckTitle')?.value || '').trim();
+            const courseSelect = document.getElementById('fcManualCourseSelect');
+            const courseId = courseSelect ? courseSelect.value : null;
+
+            const validCards = this.manualCards
+                .map((c, i) => ({
+                    question: (c.question || '').trim(),
+                    answer: (c.answer || '').trim(),
+                    concept: `Card ${i + 1}`
+                }))
+                .filter(c => c.question.length > 0 || c.answer.length > 0);
+
+            if (!title) {
+                alert('Please give your flashcard deck a title.');
+                return;
+            }
+
+            if (validCards.length === 0) {
+                alert('Please write at least one flashcard before saving.');
+                return;
+            }
+
+            const newDeck = {
+                id: `deck_${Date.now()}`,
+                title: title,
+                courseId: courseId || null,
+                createdAt: new Date().toISOString(),
+                cards: validCards
+            };
+
+            Store.data.decks = Store.data.decks || [];
+            Store.data.decks.unshift(newDeck);
+            Store.save();
+
+            const titleInput = document.getElementById('fcManualDeckTitle');
+            if (titleInput) titleInput.value = '';
+            this.manualCards = [
+                { question: '', answer: '' },
+                { question: '', answer: '' },
+                { question: '', answer: '' }
+            ];
+
+            Toast.show(`Created "${title}" with ${validCards.length} cards`);
+            this.switchTab('decks');
         },
 
         async uploadFile(file) {
@@ -1205,7 +1359,7 @@
                     if (titleInput && !titleInput.value) {
                         titleInput.value = json.fileName.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
                     }
-                    Toast.show(`Extracted ${json.text.length} characters`);
+                    Toast.show(`Extracted document text`);
                 } else {
                     alert(json.error || 'Could not parse document.');
                 }
@@ -1221,7 +1375,7 @@
             const textToUse = this.extractedText ? `${this.extractedText}\n\n${manualText}` : manualText;
 
             if (!textToUse || textToUse.length < 10) {
-                alert('Please upload a PDF or document, or paste study notes.');
+                alert('Please upload a document or paste notes.');
                 return;
             }
 
@@ -1269,7 +1423,7 @@
             list.innerHTML = cards.map((c, i) => `
                 <div class="card" style="margin-bottom:8px; padding:12px 14px;">
                     <div style="font-size:0.72rem; font-weight:700; color:var(--sv-orange); text-transform:uppercase; margin-bottom:3px;">
-                        ${escapeHtml(c.concept || 'Concept ' + (i + 1))}
+                        ${escapeHtml(c.concept || 'Card ' + (i + 1))}
                     </div>
                     <div style="font-weight:600; font-size:0.9rem; margin-bottom:4px; color:var(--text-primary);">
                         ${escapeHtml(c.question)}
@@ -1310,17 +1464,12 @@
             const listEl = document.getElementById('fcDecksList');
             if (!listEl) return;
 
-            const courseSelect = document.getElementById('fcCourseSelect');
-            if (courseSelect) {
-                const courses = Store.data.courses || [];
-                courseSelect.innerHTML = `<option value="">No Course (General)</option>` +
-                    courses.map(c => `<option value="${c.id}">${escapeHtml(c.code)} - ${escapeHtml(c.title)}</option>`).join('');
-            }
-
+            this.updateCourseDropdowns();
             const decks = Store.data.decks || [];
+            const courses = Store.data.courses || [];
 
             let html = decks.map(deck => {
-                const course = (Store.data.courses || []).find(c => c.id === deck.courseId);
+                const course = courses.find(c => c.id === deck.courseId);
                 const total = deck.cards?.length || 0;
                 const mastered = (deck.cards || []).filter(c => (c.repetitions || 0) >= 2).length;
                 const pct = total > 0 ? Math.round((mastered / total) * 100) : 0;
@@ -1330,37 +1479,52 @@
                          ondragstart="window.StudyVerse.Flashcards.handleDeckDragStart(event, '${deck.id}')"
                          ondragend="window.StudyVerse.Flashcards.handleDeckDragEnd(event)">
                         <div>
-                            ${course ? `<div class="deck-course-tag" style="color:${course.color === 'blue' ? '#3b82f6' : course.color === 'emerald' ? '#10b981' : course.color === 'purple' ? '#8b5cf6' : course.color === 'rose' ? '#f43f5e' : 'var(--sv-orange)'};">${escapeHtml(course.code)}</div>` : ''}
-                            <div class="deck-header">
-                                <h3 class="deck-title">${escapeHtml(deck.title)}</h3>
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                                ${course ? `<div class="deck-course-tag" style="color:${course.color === 'blue' ? '#3b82f6' : course.color === 'emerald' ? '#10b981' : course.color === 'purple' ? '#8b5cf6' : course.color === 'rose' ? '#f43f5e' : 'var(--sv-orange)'};">${escapeHtml(course.code)}</div>` : `<span style="font-size:0.7rem; color:var(--text-dim);">General</span>`}
                                 <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">${total} cards</span>
                             </div>
-                            <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:14px;">
+                            <h3 class="deck-title">${escapeHtml(deck.title)}</h3>
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin:6px 0 14px;">
                                 Mastery: <span style="font-weight:600; color:var(--text-primary);">${pct}%</span>
                             </div>
                         </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <button class="btn btn-primary btn-sm" onclick="window.StudyVerse.Flashcards.startPracticeById('${deck.id}')">
-                                Practice
-                            </button>
-                            <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Flashcards.deleteDeck('${deck.id}')">&times;</button>
+
+                        <div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                                <button class="btn btn-primary btn-sm" onclick="window.StudyVerse.Flashcards.startPracticeById('${deck.id}')" style="flex:1;">
+                                    Practice
+                                </button>
+                                <select class="select" style="width:auto; padding:2px 6px; font-size:0.72rem;" onchange="window.StudyVerse.Flashcards.assignDeckToCourse('${deck.id}', this.value)" title="Assign course">
+                                    <option value="" ${!deck.courseId ? 'selected' : ''}>No Course</option>
+                                    ${courses.map(c => `<option value="${c.id}" ${deck.courseId === c.id ? 'selected' : ''}>${escapeHtml(c.code)}</option>`).join('')}
+                                </select>
+                                <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Flashcards.deleteDeck('${deck.id}')" title="Delete deck">&times;</button>
+                            </div>
                         </div>
                     </div>
                 `;
             }).join('');
 
-            const ghostSlotsCount = decks.length === 0 ? 3 : (decks.length < 3 ? 2 : 1);
-            for (let i = 0; i < ghostSlotsCount; i++) {
-                html += `
-                    <div class="ghost-deck-card" onclick="window.StudyVerse.Flashcards.switchTab('generator')">
-                        <div class="ghost-deck-icon">+</div>
-                        <div style="font-weight:600; font-size:0.88rem;">New Deck Slot</div>
-                        <div style="font-size:0.75rem; color:var(--text-muted);">Click to generate flashcards or paste notes</div>
-                    </div>
-                `;
-            }
+            html += `
+                <div class="ghost-deck-card" onclick="window.StudyVerse.Flashcards.switchTab('manual')">
+                    <div class="ghost-deck-icon">+</div>
+                    <div style="font-weight:600; font-size:0.88rem;">Create Deck Manually</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">Write your own prompt & answer cards</div>
+                </div>
+            `;
 
             listEl.innerHTML = html;
+        },
+
+        assignDeckToCourse(deckId, courseId) {
+            const deck = (Store.data.decks || []).find(d => d.id === deckId);
+            if (!deck) return;
+            deck.courseId = courseId || null;
+            Store.save();
+            const course = (Store.data.courses || []).find(c => c.id === courseId);
+            Toast.show(course ? `Linked to ${course.code}` : `Unlinked course`);
+            this.renderDecksList();
+            Courses.render();
         },
 
         handleDeckDragStart(e, deckId) {
@@ -1369,11 +1533,16 @@
             e.dataTransfer.setData('studyverse/type', 'deck');
             e.currentTarget.classList.add('dragging');
             window.StudyVerse.draggedPayload = { type: 'deck', id: deckId };
+
+            const coursesNav = document.querySelector('.nav-item[data-route="courses"]');
+            if (coursesNav) coursesNav.classList.add('drag-candidate-active');
         },
 
         handleDeckDragEnd(e) {
             e.currentTarget.classList.remove('dragging');
             document.querySelectorAll('.course-card').forEach(c => c.classList.remove('drag-target-hover'));
+            const coursesNav = document.querySelector('.nav-item[data-route="courses"]');
+            if (coursesNav) coursesNav.classList.remove('drag-candidate-active');
             window.StudyVerse.draggedPayload = null;
         },
 
@@ -1409,11 +1578,11 @@
             const cardContainer = document.getElementById('ankiCardContainer');
             if (cardContainer) cardContainer.classList.remove('is-flipped');
 
-            document.getElementById('ankiCardConcept').textContent = card.concept || 'Concept';
-            document.getElementById('ankiCardQuestion').textContent = card.question;
+            document.getElementById('ankiCardConcept').textContent = card.concept || 'Front';
+            document.getElementById('ankiCardQuestion').textContent = card.question || '';
 
-            document.getElementById('ankiCardBackQuestion').textContent = card.question;
-            document.getElementById('ankiCardAnswer').textContent = card.answer;
+            document.getElementById('ankiCardBackQuestion').textContent = card.question || '';
+            document.getElementById('ankiCardAnswer').textContent = card.answer || '';
             const hintRow = document.getElementById('ankiCardHint');
             if (hintRow) {
                 if (card.hint) {
@@ -1494,6 +1663,7 @@
             Store.data.decks = (Store.data.decks || []).filter(d => d.id !== deckId);
             Store.save();
             this.renderDecksList();
+            Courses.render();
             Toast.show('Deck deleted.');
         }
     };
@@ -1874,11 +2044,16 @@
             e.dataTransfer.setData('studyverse/type', 'note');
             e.currentTarget.classList.add('dragging');
             window.StudyVerse.draggedPayload = { type: 'note', id: noteId };
+
+            const coursesNav = document.querySelector('.nav-item[data-route="courses"]');
+            if (coursesNav) coursesNav.classList.add('drag-candidate-active');
         },
 
         handleNoteDragEnd(e) {
             e.currentTarget.classList.remove('dragging');
             document.querySelectorAll('.course-card').forEach(c => c.classList.remove('drag-target-hover'));
+            const coursesNav = document.querySelector('.nav-item[data-route="courses"]');
+            if (coursesNav) coursesNav.classList.remove('drag-candidate-active');
             window.StudyVerse.draggedPayload = null;
         },
 
@@ -2460,6 +2635,660 @@
         }
     };
 
+    const TopLeftNotification = {
+        show(title, message, audioAlert = true) {
+            const existing = document.getElementById('svTopLeftNotification');
+            if (existing) existing.remove();
+
+            const notification = document.createElement('div');
+            notification.id = 'svTopLeftNotification';
+            notification.className = 'top-left-notification';
+            notification.innerHTML = `
+                <div class="tl-noti-header">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2.5">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                        <span style="font-weight:700; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--sv-orange);">New Class Post</span>
+                    </div>
+                    <button class="tl-noti-close" onclick="this.parentElement.parentElement.remove()">&times;</button>
+                </div>
+                <div class="tl-noti-body">
+                    <div class="tl-noti-title">${escapeHtml(title)}</div>
+                    <div class="tl-noti-msg">${escapeHtml(message)}</div>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            if (audioAlert) {
+                const audio = new Audio('/assets/notification.wav');
+                audio.volume = 0.45;
+                audio.play().catch(() => {});
+            }
+
+            setTimeout(() => {
+                if (notification && notification.parentNode) {
+                    notification.classList.add('fade-out');
+                    setTimeout(() => {
+                        if (notification.parentNode) notification.remove();
+                    }, 400);
+                }
+            }, 6000);
+        }
+    };
+
+    const Classroom = {
+        cachedAccessToken: null,
+        filter: 'all',
+        selectedClassId: null,
+        autoSyncTimer: null,
+        isSyncing: false,
+        authInitialized: false,
+
+        async init() {
+            this.bindEvents();
+            await this.initFirebaseAuth();
+            this.updateNavVisibility();
+            this.render();
+
+            if (this.isConnected()) {
+                this.sync(true);
+            }
+
+            this.autoSyncTimer = setInterval(() => {
+                if (this.isConnected() && !document.hidden) {
+                    this.sync(true);
+                }
+            }, 180000);
+
+            window.addEventListener('focus', () => {
+                if (this.isConnected()) {
+                    const last = Store.data.classroom?.lastSynced;
+                    if (!last || (Date.now() - new Date(last).getTime() > 120000)) {
+                        this.sync(true);
+                    }
+                }
+            });
+        },
+
+        bindEvents() {
+            const syncBtn = document.getElementById('classroomSyncNowBtn');
+            if (syncBtn) {
+                syncBtn.addEventListener('click', () => this.sync(false));
+            }
+
+            const settingsBtn = document.getElementById('classroomOpenSettingsBtn');
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', () => SettingsModal.open('connections'));
+            }
+
+            document.querySelectorAll('.cr-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    document.querySelectorAll('.cr-chip').forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    this.filter = chip.dataset.crFilter || 'all';
+                    this.renderUpcoming();
+                });
+            });
+        },
+
+        async initFirebaseAuth() {
+            if (typeof firebase === 'undefined') return;
+            try {
+                if (!firebase.apps.length) {
+                    const configRes = await fetch('/firebase-applet-config.json');
+                    if (configRes.ok) {
+                        const config = await configRes.json();
+                        firebase.initializeApp(config);
+                    }
+                }
+
+                if (firebase.apps.length) {
+                    this.authInitialized = true;
+                }
+            } catch (e) {
+                console.warn('Firebase init warning:', e.message);
+            }
+        },
+
+        isConnected() {
+            return Boolean(Store.data.classroom && Store.data.classroom.connected);
+        },
+
+        updateNavVisibility() {
+            const navItem = document.getElementById('navItemClassroom');
+            const connected = this.isConnected();
+            if (navItem) {
+                navItem.style.display = connected ? '' : 'none';
+            }
+            if (!connected && window.location.hash.replace('#', '').toLowerCase() === 'classroom') {
+                Router.navigate('dashboard');
+            }
+        },
+
+        async connect() {
+            if (typeof firebase === 'undefined') {
+                Toast.show('Authentication service loading...');
+                return;
+            }
+
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.addScope('https://www.googleapis.com/auth/classroom.courses.readonly');
+                provider.addScope('https://www.googleapis.com/auth/classroom.coursework.me.readonly');
+                provider.addScope('https://www.googleapis.com/auth/classroom.announcements.readonly');
+                provider.addScope('https://www.googleapis.com/auth/classroom.student-submissions.me.readonly');
+
+                const result = await firebase.auth().signInWithPopup(provider);
+                const credential = result.credential;
+                const token = credential?.accessToken;
+
+                if (!token) {
+                    throw new Error('Could not retrieve access token from Google sign in.');
+                }
+
+                this.cachedAccessToken = token;
+                const userPayload = {
+                    displayName: result.user.displayName,
+                    email: result.user.email,
+                    photoURL: result.user.photoURL,
+                    uid: result.user.uid
+                };
+
+                Toast.show('Connecting to Google Classroom...');
+                await this.syncWithToken(token, userPayload, false);
+
+                this.updateNavVisibility();
+                SettingsModal.render();
+                Toast.show('Google Classroom connected!');
+            } catch (err) {
+                console.error('Google Classroom connect error:', err);
+                Toast.show(err.message || 'Failed to connect Google Classroom.');
+            }
+        },
+
+        async disconnect() {
+            if (!confirm('Disconnect Google Classroom from StudyVerse?')) return;
+            try {
+                await fetch('/api/classroom/disconnect', { method: 'POST' });
+            } catch (e) {}
+
+            if (typeof firebase !== 'undefined' && firebase.apps.length) {
+                try { await firebase.auth().signOut(); } catch (e) {}
+            }
+
+            this.cachedAccessToken = null;
+            Store.data.classroom = {
+                connected: false,
+                user: null,
+                lastSynced: null,
+                classes: [],
+                upcoming: [],
+                recentPosts: []
+            };
+            this.selectedClassId = null;
+            Store.save();
+
+            this.updateNavVisibility();
+            this.render();
+            SettingsModal.render();
+            Toast.show('Google Classroom disconnected.');
+        },
+
+        async sync(silent = false) {
+            if (!this.isConnected()) return;
+            if (this.isSyncing) return;
+
+            this.isSyncing = true;
+            this.setSyncingState(true);
+
+            try {
+                let token = this.cachedAccessToken;
+
+                const res = await fetch('/api/classroom/sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
+                    body: JSON.stringify({ accessToken: token, user: Store.data.classroom?.user })
+                });
+
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && json.classroom) {
+                        if (json.classroom.accessToken) {
+                            this.cachedAccessToken = json.classroom.accessToken;
+                        }
+                        const oldUpcomingIds = new Set((Store.data.classroom?.upcoming || []).map(u => u.id));
+                        const oldPostIds = new Set((Store.data.classroom?.recentPosts || []).map(p => p.id));
+
+                        const newUpcoming = json.classroom.upcoming || [];
+                        const newPosts = json.classroom.recentPosts || [];
+
+                        const addedUpcoming = newUpcoming.filter(u => !oldUpcomingIds.has(u.id));
+                        const addedPosts = newPosts.filter(p => !oldPostIds.has(p.id));
+
+                        Store.data.classroom = json.classroom;
+                        Store.save();
+                        this.render();
+                        SettingsModal.render();
+
+                        if (!silent) Toast.show('Classroom synced successfully');
+
+                        // Fire Top-Left Notification with Sound for newly fetched class content
+                        const hasPriorData = oldUpcomingIds.size > 0 || oldPostIds.size > 0;
+                        if (hasPriorData) {
+                            if (addedUpcoming.length > 0) {
+                                const latest = addedUpcoming[0];
+                                TopLeftNotification.show(
+                                    `${latest.courseName}: New Assignment`,
+                                    latest.title
+                                );
+                            } else if (addedPosts.length > 0) {
+                                const latest = addedPosts[0];
+                                TopLeftNotification.show(
+                                    `${latest.courseName}: New ${latest.type === 'assignment' ? 'Assignment' : 'Announcement'}`,
+                                    latest.title === 'Announcement' ? latest.preview : latest.title
+                                );
+                            }
+                        }
+                    }
+                } else if (res.status === 401) {
+                    if (!silent) {
+                        Toast.show('Google Classroom session expired. Please reconnect in Settings.');
+                        SettingsModal.open('connections');
+                    }
+                } else {
+                    if (!silent) Toast.show('Classroom sync completed');
+                }
+            } catch (err) {
+                console.warn('Classroom sync warning:', err);
+                if (!silent) Toast.show('Could not refresh Classroom right now');
+            } finally {
+                this.isSyncing = false;
+                this.setSyncingState(false);
+            }
+        },
+
+        async syncWithToken(token, userPayload, silent = false) {
+            this.isSyncing = true;
+            this.setSyncingState(true);
+
+            try {
+                const res = await fetch('/api/classroom/sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ accessToken: token, user: userPayload })
+                });
+
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && json.classroom) {
+                        if (json.classroom.accessToken) {
+                            this.cachedAccessToken = json.classroom.accessToken;
+                        }
+                        const oldUpcomingIds = new Set((Store.data.classroom?.upcoming || []).map(u => u.id));
+                        const oldPostIds = new Set((Store.data.classroom?.recentPosts || []).map(p => p.id));
+
+                        const newUpcoming = json.classroom.upcoming || [];
+                        const newPosts = json.classroom.recentPosts || [];
+
+                        const addedUpcoming = newUpcoming.filter(u => !oldUpcomingIds.has(u.id));
+                        const addedPosts = newPosts.filter(p => !oldPostIds.has(p.id));
+
+                        Store.data.classroom = json.classroom;
+                        Store.save();
+                        this.render();
+                        SettingsModal.render();
+
+                        const hasPriorData = oldUpcomingIds.size > 0 || oldPostIds.size > 0;
+                        if (hasPriorData) {
+                            if (addedUpcoming.length > 0) {
+                                const latest = addedUpcoming[0];
+                                TopLeftNotification.show(
+                                    `${latest.courseName}: New Assignment`,
+                                    latest.title
+                                );
+                            } else if (addedPosts.length > 0) {
+                                const latest = addedPosts[0];
+                                TopLeftNotification.show(
+                                    `${latest.courseName}: New Announcement`,
+                                    latest.title === 'Announcement' ? latest.preview : latest.title
+                                );
+                            }
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Initial sync error:', e);
+            } finally {
+                this.isSyncing = false;
+                this.setSyncingState(false);
+            }
+        },
+
+        setSyncingState(isSyncing) {
+            document.querySelectorAll('.sync-spin-icon').forEach(icon => {
+                icon.classList.toggle('spinning', isSyncing);
+            });
+        },
+
+        selectClass(classId) {
+            if (this.selectedClassId === classId) {
+                this.selectedClassId = null; // Toggle selection off
+            } else {
+                this.selectedClassId = classId;
+            }
+            this.render();
+        },
+
+        render() {
+            this.updateNavVisibility();
+            const data = Store.data.classroom || { classes: [], upcoming: [], recentPosts: [] };
+
+            const classes = data.classes || [];
+            const upcoming = data.upcoming || [];
+            const recentPosts = data.recentPosts || [];
+
+            const pendingCount = upcoming.filter(u => u.status === 'Assigned' || u.status === 'Missing').length;
+
+            const statClasses = document.getElementById('classroomStatClassesCount');
+            const statUpcoming = document.getElementById('classroomStatUpcomingCount');
+            const statPending = document.getElementById('classroomStatPendingCount');
+            const statAnnouncements = document.getElementById('classroomStatAnnouncementsCount');
+            const classesBadge = document.getElementById('classroomClassesBadge');
+
+            if (statClasses) statClasses.textContent = classes.length;
+            if (statUpcoming) statUpcoming.textContent = upcoming.length;
+            if (statPending) statPending.textContent = pendingCount;
+            if (statAnnouncements) statAnnouncements.textContent = recentPosts.length;
+            if (classesBadge) classesBadge.textContent = `${classes.length} Classes`;
+
+            const lastSyncLabel = document.getElementById('classroomLastSyncLabel');
+            if (lastSyncLabel) {
+                if (data.lastSynced) {
+                    const d = new Date(data.lastSynced);
+                    lastSyncLabel.textContent = `Last synced: ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                } else {
+                    lastSyncLabel.textContent = 'Last synced: Just now';
+                }
+            }
+
+            this.renderUpcoming();
+            this.renderClasses();
+            this.renderRecentPosts();
+        },
+
+        renderUpcoming() {
+            const listEl = document.getElementById('classroomUpcomingList');
+            if (!listEl) return;
+
+            const all = Store.data.classroom?.upcoming || [];
+
+            // User Friendly Filter: Only show tasks from the past 30 days and future assignments
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+
+            let filtered = all.filter(item => {
+                if (item.dueDate) {
+                    return item.dueDate >= thirtyDaysAgoStr;
+                }
+                if (item.creationTime) {
+                    return item.creationTime >= thirtyDaysAgo.toISOString();
+                }
+                return true;
+            });
+
+            // Filter by Selected Class
+            if (this.selectedClassId) {
+                filtered = filtered.filter(item => item.courseId === this.selectedClassId);
+            }
+
+            // Filter by Category Chip
+            if (this.filter === 'pending') {
+                filtered = filtered.filter(item => item.status === 'Assigned');
+            } else if (this.filter === 'missing') {
+                filtered = filtered.filter(item => item.status === 'Missing');
+            } else if (this.filter === 'completed') {
+                filtered = filtered.filter(item => item.status === 'Turned in' || item.status === 'Graded');
+            }
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div style="text-align:center; padding:48px 16px; color:var(--text-muted); font-size:0.86rem;">
+                        No coursework found for this filter.
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(item => {
+                const statusClass = (item.status || 'assigned').toLowerCase().replace(/\s+/g, '-');
+                let dueLabel = 'No due date';
+                if (item.dueDate) {
+                    dueLabel = formatTaskDateAndTime(item.dueDate, item.dueTime, false);
+                }
+
+                const displayCourseName = truncateString(item.courseName || 'Class', 18);
+                const displayTitle = truncateString(item.title, 64);
+                const displayDesc = truncateString(item.description || '', 150);
+
+                return `
+                    <a class="classroom-card-item" href="${escapeHtml(item.alternateLink)}" target="_blank" rel="noopener noreferrer" title="Click to view assignment in Google Classroom">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0; flex:1;">
+                                <span class="cr-course-pill">${escapeHtml(displayCourseName)}</span>
+                                <span style="font-weight:700; font-size:0.92rem; color:var(--text-primary);">${escapeHtml(displayTitle)}</span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+                                <span class="cr-status-tag ${statusClass}">${escapeHtml(item.status)}</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        ${displayDesc ? `<div style="font-size:0.78rem; color:var(--text-secondary); line-height:1.45; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapeHtml(displayDesc)}</div>` : ''}
+
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px; font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                <span>Due: ${dueLabel}</span>
+                            </div>
+                            ${item.maxPoints ? `<span>${item.maxPoints} pts</span>` : ''}
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        },
+
+        renderClasses() {
+            const listEl = document.getElementById('classroomClassesList');
+            if (!listEl) return;
+
+            const classes = Store.data.classroom?.classes || [];
+            if (classes.length === 0) {
+                listEl.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted); padding:10px 0;">No active classes found.</div>`;
+                return;
+            }
+
+            const selId = this.selectedClassId;
+
+            listEl.innerHTML = classes.map(c => {
+                const isActive = (selId === c.id);
+                const displayClassName = truncateString(c.name, 36);
+                const displayClassSection = truncateString(c.section || c.room || 'Active Class', 28);
+                return `
+                    <div class="cr-class-row ${isActive ? 'selected-class' : ''}" onclick="window.StudyVerse.Classroom.selectClass('${c.id}')" title="Click to view posts and assignments for ${escapeHtml(c.name)}">
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-weight:700; font-size:0.88rem; color: ${isActive ? 'var(--sv-orange)' : 'var(--text-primary)'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(displayClassName)}</div>
+                            <div style="font-size:0.74rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(displayClassSection)}</div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                            <a href="${escapeHtml(c.alternateLink)}" target="_blank" rel="noopener noreferrer" class="cr-class-open-link" onclick="event.stopPropagation();" title="Open class in Google Classroom">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        },
+
+        renderRecentPosts() {
+            const listEl = document.getElementById('classroomRecentPostsList');
+            if (!listEl) return;
+
+            const posts = Store.data.classroom?.recentPosts || [];
+            let filtered = posts;
+
+            // Filter by Selected Class
+            if (this.selectedClassId) {
+                filtered = filtered.filter(p => p.courseId === this.selectedClassId);
+            }
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted); padding:24px 10px; text-align:center;">No recent announcements for this filter.</div>`;
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(p => {
+                const dateStr = p.date ? new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+                const displayCourseName = truncateString(p.courseName, 18);
+                const displayTitle = truncateString(p.title, 48);
+                const displayPreview = truncateString(p.preview || '', 120);
+
+                return `
+                    <a class="cr-post-item" href="${escapeHtml(p.alternateLink)}" target="_blank" rel="noopener noreferrer" title="View post in Google Classroom">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                            <span class="cr-course-pill" style="font-size:0.68rem; padding:1px 6px; flex-shrink:0;">${escapeHtml(displayCourseName)}</span>
+                            <span style="font-size:0.72rem; color:var(--text-dim); font-family:var(--font-mono); flex-shrink:0;">${dateStr}</span>
+                        </div>
+                        <div style="font-weight:600; font-size:0.84rem; color:var(--text-primary); margin-top:2px; word-break:break-word;">${escapeHtml(displayTitle)}</div>
+                        ${displayPreview ? `<div style="font-size:0.76rem; color:var(--text-secondary); line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(displayPreview)}</div>` : ''}
+                    </a>
+                `;
+            }).join('');
+        }
+    };
+
+    const SettingsModal = {
+        activeTab: 'connections',
+
+        init() {
+            this.bindEvents();
+        },
+
+        bindEvents() {
+            const openBtn = document.getElementById('dropSettingsBtn');
+
+            if (openBtn) {
+                openBtn.addEventListener('click', () => {
+                    const dropdown = document.getElementById('profileDropdown');
+                    if (dropdown) dropdown.classList.remove('show');
+                    this.open('connections');
+                });
+            }
+
+            document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tab = btn.dataset.settingsTab;
+                    this.switchTab(tab);
+                });
+            });
+
+            const connectBtn = document.getElementById('btnConnectGoogleClassroom');
+            if (connectBtn) {
+                connectBtn.addEventListener('click', () => Classroom.connect());
+            }
+
+            const disconnectBtn = document.getElementById('btnDisconnectGoogleClassroom');
+            if (disconnectBtn) {
+                disconnectBtn.addEventListener('click', () => Classroom.disconnect());
+            }
+
+            const syncBtn = document.getElementById('btnSettingsClassroomSync');
+            if (syncBtn) {
+                syncBtn.addEventListener('click', () => Classroom.sync(false));
+            }
+        },
+
+        open(tab = 'connections') {
+            const modal = document.getElementById('settingsModal');
+            if (!modal) return;
+            this.switchTab(tab);
+            this.render();
+            modal.classList.add('show');
+        },
+
+        switchTab(tab) {
+            this.activeTab = tab;
+            document.querySelectorAll('.settings-tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.settingsTab === tab);
+            });
+
+            const connContent = document.getElementById('settingsTabConnections');
+            const genContent = document.getElementById('settingsTabGeneral');
+
+            if (connContent) connContent.style.display = (tab === 'connections') ? 'block' : 'none';
+            if (genContent) genContent.style.display = (tab === 'general') ? 'block' : 'none';
+        },
+
+        render() {
+            const isConnected = Classroom.isConnected();
+            const crData = Store.data.classroom || {};
+            const badge = document.getElementById('settingsClassroomStatusBadge');
+            const disconnectedState = document.getElementById('classroomDisconnectedState');
+            const connectedState = document.getElementById('classroomConnectedState');
+
+            if (badge) {
+                badge.textContent = isConnected ? 'Connected' : 'Disconnected';
+                badge.className = `connection-status-pill ${isConnected ? 'connected' : 'disconnected'}`;
+            }
+
+            if (disconnectedState) disconnectedState.style.display = isConnected ? 'none' : 'block';
+            if (connectedState) connectedState.style.display = isConnected ? 'block' : 'none';
+
+            if (isConnected && crData.user) {
+                const user = crData.user;
+                const nameEl = document.getElementById('settingsClassroomUserName');
+                const emailEl = document.getElementById('settingsClassroomUserEmail');
+                const imgEl = document.getElementById('settingsClassroomUserImg');
+                const initEl = document.getElementById('settingsClassroomUserInitials');
+                const lastSyncEl = document.getElementById('settingsClassroomLastSync');
+
+                if (nameEl) nameEl.textContent = user.displayName || 'Student Account';
+                if (emailEl) emailEl.textContent = user.email || 'student@school.edu';
+
+                if (user.photoURL && imgEl) {
+                    imgEl.src = user.photoURL;
+                    imgEl.style.display = 'block';
+                    if (initEl) initEl.style.display = 'none';
+                } else if (initEl) {
+                    initEl.textContent = (user.displayName || user.email || 'S').charAt(0).toUpperCase();
+                    initEl.style.display = 'flex';
+                    if (imgEl) imgEl.style.display = 'none';
+                }
+
+                if (lastSyncEl) {
+                    if (crData.lastSynced) {
+                        const d = new Date(crData.lastSynced);
+                        lastSyncEl.textContent = `Last synced: ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                    } else {
+                        lastSyncEl.textContent = 'Last synced: Just now';
+                    }
+                }
+            }
+        }
+    };
+
     const Router = {
         dragHoverTimer: null,
 
@@ -2577,7 +3406,7 @@
 
         handleHash() {
             let hash = window.location.hash.replace('#', '').toLowerCase();
-            const valid = ['dashboard', 'flashcards', 'pomodoro', 'tasks', 'notes', 'calendar', 'courses'];
+            const valid = ['dashboard', 'flashcards', 'pomodoro', 'tasks', 'notes', 'calendar', 'courses', 'classroom'];
             this.showView(valid.includes(hash) ? hash : 'dashboard');
         },
 
@@ -2609,6 +3438,7 @@
             if (route === 'notes') Notes.render();
             if (route === 'calendar') Calendar.render();
             if (route === 'courses') Courses.render();
+            if (route === 'classroom') Classroom.render();
             if (route === 'pomodoro') Pomodoro.updateDisplay();
         }
     };
@@ -2625,6 +3455,12 @@
             this.timer = setTimeout(() => toast.classList.remove('show'), 3000);
         }
     };
+
+    function truncateString(str, maxLen) {
+        if (!str) return '';
+        if (str.length <= maxLen) return str;
+        return str.slice(0, maxLen - 3) + '...';
+    }
 
     function escapeHtml(str) {
         if (!str) return '';
@@ -2647,6 +3483,8 @@
         Calendar.init();
         Courses.init();
         Dashboard.init();
+        Classroom.init();
+        SettingsModal.init();
         Router.init();
 
         window.StudyVerse = {
@@ -2659,9 +3497,12 @@
             Calendar,
             Courses,
             Dashboard,
+            Classroom,
+            SettingsModal,
             Router,
             Toast,
             ProfileModal,
+            TopLeftNotification,
             draggedPayload: null
         };
     });

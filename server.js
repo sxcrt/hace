@@ -82,6 +82,9 @@ const SPA_ROUTES = [
     "/calendar/",
     "/courses",
     "/courses/",
+    "/classroom",
+    "/classroom/",
+    "/classroom.html",
     "/Homepage.html",
     "/homepage",
     "/calendar.html",
@@ -139,6 +142,14 @@ function readUserData(uid) {
             events: [],
             courses: [],
             decks: [],
+            classroom: {
+                connected: false,
+                user: null,
+                lastSynced: null,
+                classes: [],
+                upcoming: [],
+                recentPosts: []
+            },
             pomodoro: {
                 completedSessions: 0,
                 totalFocusMinutes: 0,
@@ -157,6 +168,14 @@ function readUserData(uid) {
         events: Array.isArray(loaded.events) ? loaded.events : [],
         courses: Array.isArray(loaded.courses) ? loaded.courses : [],
         decks: Array.isArray(loaded.decks) ? loaded.decks : [],
+        classroom: loaded.classroom || {
+            connected: false,
+            user: null,
+            lastSynced: null,
+            classes: [],
+            upcoming: [],
+            recentPosts: []
+        },
         pomodoro: loaded.pomodoro || { completedSessions: 0, totalFocusMinutes: 0, activeSession: null }
     };
 }
@@ -220,6 +239,14 @@ app.post("/api/user-data/reset", (req, res) => {
         events: [],
         courses: [],
         decks: [],
+        classroom: {
+            connected: false,
+            user: null,
+            lastSynced: null,
+            classes: [],
+            upcoming: [],
+            recentPosts: []
+        },
         pomodoro: {
             completedSessions: 0,
             totalFocusMinutes: 0,
@@ -228,6 +255,232 @@ app.post("/api/user-data/reset", (req, res) => {
     };
     writeUserData(uid, blank);
     res.json({ success: true, message: "Workspace reset to blank slate", data: blank });
+});
+
+app.get("/api/classroom/data", (req, res) => {
+    const uid = req.studyverseUid;
+    const userData = readUserData(uid);
+    res.json({
+        success: true,
+        classroom: userData.classroom || {
+            connected: false,
+            user: null,
+            lastSynced: null,
+            classes: [],
+            upcoming: [],
+            recentPosts: []
+        }
+    });
+});
+
+app.post("/api/classroom/sync", async (req, res) => {
+    try {
+        const uid = req.studyverseUid;
+        let token = req.headers.authorization;
+        if (token && token.startsWith("Bearer ")) {
+            token = token.slice(7).trim();
+        }
+        if (!token && req.body && req.body.accessToken) {
+            token = req.body.accessToken;
+        }
+        if (!token) {
+            const userData = readUserData(uid);
+            if (userData.classroom && userData.classroom.accessToken) {
+                token = userData.classroom.accessToken;
+            }
+        }
+        if (!token) {
+            return res.status(401).json({ success: false, error: "Access token is required to sync Google Classroom." });
+        }
+
+        const headers = {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/json"
+        };
+
+        const coursesRes = await fetch("https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE&pageSize=25", { headers });
+        if (!coursesRes.ok) {
+            const errBody = await coursesRes.text();
+            console.error("Google Classroom courses error:", errBody);
+            return res.status(coursesRes.status).json({
+                success: false,
+                error: "Google Classroom API error: " + errBody
+            });
+        }
+
+        const coursesData = await coursesRes.json();
+        const rawCourses = coursesData.courses || [];
+
+        const classes = rawCourses.map(c => ({
+            id: c.id,
+            name: c.name || "Untitled Class",
+            section: c.section || "",
+            descriptionHeading: c.descriptionHeading || "",
+            room: c.room || "",
+            alternateLink: c.alternateLink || `https://classroom.google.com/c/${c.id}`,
+            enrollmentCode: c.enrollmentCode || "",
+            updateTime: c.updateTime || c.creationTime || new Date().toISOString()
+        }));
+
+        let allUpcoming = [];
+        let allRecentPosts = [];
+
+        await Promise.allSettled(rawCourses.map(async (course) => {
+            const courseId = course.id;
+            const courseName = course.name || "Course";
+
+            try {
+                const cwRes = await fetch(`https://classroom.googleapis.com/v1/courses/${courseId}/courseWork?courseWorkStates=PUBLISHED&pageSize=30`, { headers });
+                if (cwRes.ok) {
+                    const cwData = await cwRes.json();
+                    const courseworkList = cwData.courseWork || [];
+
+                    let submissionsMap = {};
+                    try {
+                        const subsRes = await fetch(`https://classroom.googleapis.com/v1/courses/${courseId}/courseWork/-/studentSubmissions?userId=me&pageSize=50`, { headers });
+                        if (subsRes.ok) {
+                            const subsData = await subsRes.json();
+                            (subsData.studentSubmissions || []).forEach(sub => {
+                                submissionsMap[sub.courseWorkId] = sub;
+                            });
+                        }
+                    } catch (subErr) {
+                        console.warn(`Submissions lookup warning for ${courseId}:`, subErr.message);
+                    }
+
+                    courseworkList.forEach(cw => {
+                        const sub = submissionsMap[cw.id];
+                        let status = "Assigned";
+                        if (sub) {
+                            if (sub.state === "TURNED_IN") status = "Turned in";
+                            else if (sub.state === "RETURNED") status = "Graded";
+                            else if (sub.state === "RECLAIMED_BY_STUDENT" || sub.state === "CREATED" || sub.state === "NEW") status = "Assigned";
+                            else status = sub.state || "Assigned";
+                        }
+
+                        let dueIso = null;
+                        let dueTimeStr = null;
+                        if (cw.dueDate) {
+                            const y = cw.dueDate.year;
+                            const m = String(cw.dueDate.month).padStart(2, "0");
+                            const d = String(cw.dueDate.day).padStart(2, "0");
+                            dueIso = `${y}-${m}-${d}`;
+                            if (cw.dueTime) {
+                                const hh = String(cw.dueTime.hours || 0).padStart(2, "0");
+                                const mm = String(cw.dueTime.minutes || 0).padStart(2, "0");
+                                dueTimeStr = `${hh}:${mm}`;
+                            }
+
+                            if (status === "Assigned" && dueIso < new Date().toISOString().split("T")[0]) {
+                                status = "Missing";
+                            }
+                        }
+
+                        allUpcoming.push({
+                            id: cw.id,
+                            courseId: courseId,
+                            courseName: courseName,
+                            title: cw.title || "Untitled Assignment",
+                            description: cw.description || "",
+                            alternateLink: cw.alternateLink || `https://classroom.google.com/c/${courseId}/a/${cw.id}/details`,
+                            maxPoints: cw.maxPoints || null,
+                            dueDate: dueIso,
+                            dueTime: dueTimeStr,
+                            status: status,
+                            workType: cw.workType || "ASSIGNMENT",
+                            creationTime: cw.creationTime || cw.updateTime || new Date().toISOString()
+                        });
+
+                        allRecentPosts.push({
+                            id: `cw_post_${cw.id}`,
+                            type: "assignment",
+                            courseId: courseId,
+                            courseName: courseName,
+                            title: cw.title || "New Coursework",
+                            preview: (cw.description || "").slice(0, 160),
+                            alternateLink: cw.alternateLink || `https://classroom.google.com/c/${courseId}/a/${cw.id}/details`,
+                            date: cw.creationTime || cw.updateTime || new Date().toISOString()
+                        });
+                    });
+                }
+            } catch (cwErr) {
+                console.warn(`Coursework fetch warning for ${courseId}:`, cwErr.message);
+            }
+
+            try {
+                const annRes = await fetch(`https://classroom.googleapis.com/v1/courses/${courseId}/announcements?announcementStates=PUBLISHED&pageSize=20`, { headers });
+                if (annRes.ok) {
+                    const annData = await annRes.json();
+                    const announcementsList = annData.announcements || [];
+                    announcementsList.forEach(ann => {
+                        allRecentPosts.push({
+                            id: `ann_post_${ann.id}`,
+                            type: "announcement",
+                            courseId: courseId,
+                            courseName: courseName,
+                            title: `Announcement`,
+                            preview: (ann.text || "").slice(0, 200),
+                            alternateLink: ann.alternateLink || `https://classroom.google.com/c/${courseId}/p/${ann.id}`,
+                            date: ann.creationTime || ann.updateTime || new Date().toISOString()
+                        });
+                    });
+                }
+            } catch (annErr) {
+                console.warn(`Announcements fetch warning for ${courseId}:`, annErr.message);
+            }
+        }));
+
+        allUpcoming.sort((a, b) => {
+            if (a.dueDate && b.dueDate) {
+                const cmp = a.dueDate.localeCompare(b.dueDate);
+                if (cmp !== 0) return cmp;
+                return (a.dueTime || "").localeCompare(b.dueTime || "");
+            }
+            if (a.dueDate) return -1;
+            if (b.dueDate) return 1;
+            return (b.creationTime || "").localeCompare(a.creationTime || "");
+        });
+
+        allRecentPosts.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+        allRecentPosts = allRecentPosts.slice(0, 40);
+
+        const userData = readUserData(uid);
+        const classroomPayload = {
+            connected: true,
+            user: req.body.user || userData.classroom?.user || null,
+            lastSynced: new Date().toISOString(),
+            classes: classes,
+            upcoming: allUpcoming,
+            recentPosts: allRecentPosts,
+            accessToken: token
+        };
+
+        userData.classroom = classroomPayload;
+        writeUserData(uid, userData);
+
+        return res.json({
+            success: true,
+            classroom: classroomPayload
+        });
+    } catch (err) {
+        console.error("Error in /api/classroom/sync:", err);
+        return res.status(500).json({ success: false, error: err.message || "Failed to sync Google Classroom data." });
+    }
+});
+
+app.post("/api/classroom/disconnect", (req, res) => {
+    const uid = req.studyverseUid;
+    const userData = readUserData(uid);
+    userData.classroom = {
+        connected: false,
+        user: null,
+        lastSynced: null,
+        classes: [],
+        upcoming: [],
+        recentPosts: []
+    };
+    writeUserData(uid, userData);
+    res.json({ success: true, message: "Disconnected Google Classroom successfully." });
 });
 
 async function extractTextFromPDF(buffer) {

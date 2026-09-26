@@ -9,6 +9,8 @@
     <meta property="og:description" content="Comprehensive student study platform featuring an integrated dashboard, academic calendar, task tracking, class notes, flashcards, Pomodoro focus timer, and course management.">
     <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
     <link rel="stylesheet" href="/app.css">
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
     <script src="/app.js" defer></script>
 </head>
 <body>
@@ -31,6 +33,7 @@
                 <button class="nav-item" data-route="notes">Notes</button>
                 <button class="nav-item" data-route="calendar">Calendar</button>
                 <button class="nav-item" data-route="courses">Courses</button>
+                <button class="nav-item" data-route="classroom" id="navItemClassroom" style="display:none;">Classroom</button>
             </nav>
 
             <div class="header-actions">
@@ -60,6 +63,11 @@
                                 <div id="dropProfileStreak" style="font-size:0.75rem; color:var(--sv-orange); font-weight:600;">1 Day Streak</div>
                             </div>
                         </div>
+
+                        <button id="dropSettingsBtn" class="profile-menu-item" type="button">
+                            <span>Settings & Connections</span>
+                            <span style="color:var(--text-dim);">&rarr;</span>
+                        </button>
 
                         <button id="dropEditProfileBtn" class="profile-menu-item" type="button">
                             <span>Edit Profile & Avatar</span>
@@ -196,28 +204,73 @@
             </section>
 
             <section id="view-flashcards" class="app-view">
-                <div class="page-header">
+                <div class="page-header" style="flex-wrap:wrap; gap:10px;">
                     <h1 class="page-title">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2">
                             <rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
                         </svg>
-                        Flashcards Studio
+                        Flashcards
                     </h1>
                 </div>
 
                 <div class="flashcards-subnav" id="flashcardsSubnav">
-                    <button class="subnav-tab active" data-tab="generator">Generate</button>
-                    <button class="subnav-tab" data-tab="decks">My Decks</button>
-                    <button class="subnav-tab" data-tab="practice" style="display:none;" id="tabAnkiPracticeBtn">Practice Mode</button>
+                    <button class="subnav-tab active" data-tab="decks">My Decks</button>
+                    <button class="subnav-tab" data-tab="manual">+ Create Deck</button>
+                    <button class="subnav-tab" data-tab="generator">AI Generator</button>
+                    <button class="subnav-tab" data-tab="practice" style="display:none;" id="tabAnkiPracticeBtn">Practice</button>
                 </div>
 
-                <div id="fcTabGenerator">
+                <div id="fcTabDecks">
+                    <div id="fcDecksList" class="decks-grid"></div>
+                </div>
+
+                <div id="fcTabManual" style="display:none;">
+                    <div class="card" style="padding:20px; max-width:820px; margin:0 auto;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-subtle); padding-bottom:12px;">
+                            <div>
+                                <h2 style="font-family:var(--font-heading); font-size:1.15rem; font-weight:700; margin:0;">Create Flashcard Deck</h2>
+                                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">Write custom prompt and answer pairs.</div>
+                            </div>
+                            <div style="display:flex; gap:8px;">
+                                <button class="btn btn-secondary btn-sm" type="button" onclick="window.StudyVerse.Flashcards.switchTab('decks')">Cancel</button>
+                                <button id="fcSaveManualDeckBtn" class="btn btn-primary btn-sm" type="button">Save Deck</button>
+                            </div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; margin-bottom:18px;">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label" for="fcManualDeckTitle">Deck Title</label>
+                                <input type="text" id="fcManualDeckTitle" class="input" placeholder="e.g. Biology Cell Structure">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="form-label" for="fcManualCourseSelect">Course</label>
+                                <select id="fcManualCourseSelect" class="select">
+                                    <option value="">No Course (General)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <span id="fcManualCardsCount" style="font-size:0.82rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em;">Cards (3)</span>
+                            <button id="fcAddManualCardBtn" class="btn btn-secondary btn-sm" type="button">+ Add Card</button>
+                        </div>
+
+                        <div id="fcManualCardsList" class="manual-cards-list"></div>
+
+                        <div style="margin-top:16px; display:flex; justify-content:space-between; align-items:center;">
+                            <button id="fcAddManualCardBottomBtn" class="btn btn-secondary btn-sm" type="button">+ Add Card</button>
+                            <button id="fcSaveManualDeckBottomBtn" class="btn btn-primary" type="button">Save Deck</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="fcTabGenerator" style="display:none;">
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
                         <div>
                             <div id="fcDropzone" class="upload-dropzone">
                                 <input type="file" id="fcFileInput" accept=".pdf,.docx,.txt,.md">
-                                <div class="dropzone-title">Upload Lecture PDF / Document</div>
-                                <p class="dropzone-hint">Drag & drop textbook notes, slides, or syllabus</p>
+                                <div class="dropzone-title">Drop PDF or text document</div>
+                                <p class="dropzone-hint">Extract lecture slides or syllabus notes</p>
                                 <div id="fcUploadStatus" style="font-size:0.8rem; color:var(--sv-orange); margin-top:4px;"></div>
                             </div>
 
@@ -227,14 +280,14 @@
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label" for="fcStudyNotesInput">Or Paste Notes & Excerpts</label>
-                                <textarea id="fcStudyNotesInput" class="textarea" placeholder="Paste textbook excerpts or lecture notes here..."></textarea>
+                                <label class="form-label" for="fcStudyNotesInput">Study Notes or Excerpt</label>
+                                <textarea id="fcStudyNotesInput" class="textarea" placeholder="Paste notes or key concepts..."></textarea>
                             </div>
 
                             <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:10px;">
                                 <div class="form-group">
                                     <label class="form-label" for="fcDeckTitle">Deck Title</label>
-                                    <input type="text" id="fcDeckTitle" class="input" placeholder="e.g. Communication Channels">
+                                    <input type="text" id="fcDeckTitle" class="input" placeholder="e.g. Organic Chemistry">
                                 </div>
                                 <div class="form-group">
                                     <label class="form-label" for="fcCardCount">Cards</label>
@@ -248,15 +301,15 @@
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label" for="fcCourseSelect">Assign to Course (Optional)</label>
+                                <label class="form-label" for="fcCourseSelect">Course</label>
                                 <select id="fcCourseSelect" class="select">
                                     <option value="">No Course (General)</option>
                                 </select>
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label" for="fcTopicFocus">Topic Focus (Optional)</label>
-                                <input type="text" id="fcTopicFocus" class="input" placeholder="e.g. Focus on definitions and practical differences">
+                                <label class="form-label" for="fcTopicFocus">Focus Topic (Optional)</label>
+                                <input type="text" id="fcTopicFocus" class="input" placeholder="e.g. Focus on mechanisms and definitions">
                             </div>
 
                             <button id="fcGenerateBtn" class="btn btn-primary btn-lg" style="width:100%;" type="button">
@@ -274,10 +327,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div id="fcTabDecks" style="display:none;">
-                    <div id="fcDecksList" class="decks-grid"></div>
                 </div>
 
                 <div id="fcTabPractice" style="display:none;">
@@ -301,19 +350,19 @@
                             <div id="ankiCardContainer" class="anki-card-container">
                                 <div class="anki-card-inner">
                                     <div class="anki-card-front">
-                                        <span id="ankiCardConcept" class="anki-card-concept-tag">Concept</span>
+                                        <span id="ankiCardConcept" class="anki-card-concept-tag">Front</span>
                                         <div id="ankiCardQuestion" class="anki-card-body-text">Question</div>
                                         <div style="font-size:0.75rem; color:var(--text-dim); text-align:center;">Click card or press [Space] to flip</div>
                                     </div>
 
                                     <div class="anki-card-back">
-                                        <span class="anki-card-concept-tag">Answer</span>
+                                        <span class="anki-card-concept-tag">Back</span>
                                         <div style="margin: auto 0;">
                                              <div id="ankiCardBackQuestion" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">Question</div>
                                             <div id="ankiCardAnswer" class="anki-card-body-text">Answer</div>
                                             <div id="ankiCardHint" class="card" style="display:none; padding:8px 12px; margin-top:10px; font-size:0.82rem; background:var(--bg-subtle);"></div>
                                         </div>
-                                        <div style="font-size:0.75rem; color:var(--text-dim); text-align:center;">Select recall rating below</div>
+                                        <div style="font-size:0.75rem; color:var(--text-dim); text-align:center;">Rate your recall</div>
                                     </div>
                                 </div>
                             </div>
@@ -339,9 +388,9 @@
                         </div>
 
                         <div id="ankiResultsScreen" class="card" style="display:none; text-align:center; padding:36px 20px;">
-                            <h2 style="font-family:var(--font-heading); font-size:1.6rem; font-weight:700; margin-bottom:8px;">Session Complete</h2>
-                            <p style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:20px;">All cards scheduled into your spaced repetition queue.</p>
-                            <button id="ankiReturnDecksBtn" class="btn btn-primary" type="button">Return to Decks</button>
+                            <h2 style="font-family:var(--font-heading); font-size:1.6rem; font-weight:700; margin-bottom:8px;">Deck Complete</h2>
+                            <p style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:20px;">All cards practiced.</p>
+                            <button id="ankiReturnDecksBtn" class="btn btn-primary" type="button">Back to Decks</button>
                         </div>
                     </div>
                 </div>
@@ -512,6 +561,123 @@
                 </div>
 
                 <div id="coursesGrid" class="courses-grid"></div>
+            </section>
+
+            <section id="view-classroom" class="app-view">
+                <div class="page-header" style="flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <h1 class="page-title">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#10b981;">
+                                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                            </svg>
+                            Google Classroom
+                        </h1>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span id="classroomLastSyncLabel" style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono);">Last synced: Just now</span>
+                        <button id="classroomSyncNowBtn" class="btn btn-secondary btn-sm" type="button" title="Manually check for new assignments or announcements">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sync-spin-icon">
+                                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                            </svg>
+                            <span>Sync now</span>
+                        </button>
+                        <a id="classroomOpenWebLink" href="https://classroom.google.com" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" title="Open official Google Classroom in new tab">
+                            <span>Open Classroom</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                            </svg>
+                        </a>
+                        <button id="classroomOpenSettingsBtn" class="btn btn-subtle btn-sm" type="button" title="Manage connection settings">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="metrics-overview-row">
+                    <div class="metric-stat-card">
+                        <div class="metric-stat-label">
+                            <span>Enrolled Classes</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                            </svg>
+                        </div>
+                        <div id="classroomStatClassesCount" class="metric-stat-value">0</div>
+                        <div class="metric-stat-sub">Active Google courses</div>
+                    </div>
+
+                    <div class="metric-stat-card">
+                        <div class="metric-stat-label">
+                            <span>Upcoming Coursework</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                        <div id="classroomStatUpcomingCount" class="metric-stat-value">0</div>
+                        <div class="metric-stat-sub">Assignments & to-dos</div>
+                    </div>
+
+                    <div class="metric-stat-card">
+                        <div class="metric-stat-label">
+                            <span>Pending / Due Soon</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            </svg>
+                        </div>
+                        <div id="classroomStatPendingCount" class="metric-stat-value">0</div>
+                        <div class="metric-stat-sub">Awaiting turn in</div>
+                    </div>
+
+                    <div class="metric-stat-card">
+                        <div class="metric-stat-label">
+                            <span>Recent Posts</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </div>
+                        <div id="classroomStatAnnouncementsCount" class="metric-stat-value">0</div>
+                        <div class="metric-stat-sub">Class stream updates</div>
+                    </div>
+                </div>
+
+                <div class="classroom-layout-grid">
+                    <div class="classroom-main-column">
+                        <div class="card" style="padding:16px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                                <div>
+                                    <h2 style="font-family:var(--font-heading); font-size:1.05rem; font-weight:700; color:var(--text-primary); margin:0;">Upcoming Coursework & To-Dos</h2>
+                                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">Click any item to view details directly in Google Classroom</div>
+                                </div>
+                                <div class="classroom-filter-chips">
+                                    <button class="cr-chip active" data-cr-filter="all">All</button>
+                                    <button class="cr-chip" data-cr-filter="pending">Assigned</button>
+                                    <button class="cr-chip" data-cr-filter="missing">Missing</button>
+                                    <button class="cr-chip" data-cr-filter="completed">Turned In</button>
+                                </div>
+                            </div>
+                            <div id="classroomUpcomingList" class="classroom-items-list"></div>
+                        </div>
+                    </div>
+
+                    <div class="classroom-side-column">
+                        <div class="card" style="padding:16px; margin-bottom:16px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                <h3 style="font-family:var(--font-heading); font-size:0.95rem; font-weight:700; color:var(--text-primary); margin:0;">Enrolled Classes</h3>
+                                <span id="classroomClassesBadge" class="badge-subtle">0 Classes</span>
+                            </div>
+                            <div id="classroomClassesList" class="classroom-classes-scroll"></div>
+                        </div>
+
+                        <div class="card" style="padding:16px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                                <h3 style="font-family:var(--font-heading); font-size:0.95rem; font-weight:700; color:var(--text-primary); margin:0;">Recent Posts & Announcements</h3>
+                            </div>
+                            <div id="classroomRecentPostsList" class="classroom-posts-scroll"></div>
+                        </div>
+                    </div>
+                </div>
             </section>
         </main>
     </div>
@@ -765,6 +931,108 @@
             <div class="modal-actions">
                 <button class="btn btn-secondary" type="button" onclick="document.getElementById('resetConfirmModal').classList.remove('show')">Cancel</button>
                 <button id="executeResetBtn" class="btn btn-danger" style="background:#dc2626; color:#fff;" type="button" disabled>Permanently Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal-backdrop">
+        <div class="modal-dialog" style="max-width:580px;">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--sv-orange);">
+                        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <h3 class="modal-title">Settings & Connections</h3>
+                </div>
+                <button class="modal-close-btn" type="button" onclick="document.getElementById('settingsModal').classList.remove('show')">&times;</button>
+            </div>
+
+            <div class="settings-nav-tabs">
+                <button class="settings-tab-btn active" data-settings-tab="connections" type="button">Connections</button>
+                <button class="settings-tab-btn" data-settings-tab="general" type="button">General</button>
+            </div>
+
+            <div id="settingsTabConnections" class="settings-tab-content">
+                <div class="connection-card">
+                    <div class="connection-header">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div class="connection-icon-wrap" style="background:#10b981; color:#fff;">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <h4 style="margin:0; font-size:1rem; font-weight:700;">Google Classroom</h4>
+                                    <span id="settingsClassroomStatusBadge" class="connection-status-pill disconnected">Disconnected</span>
+                                </div>
+                                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">Sync your enrolled classes, coursework deadlines, and announcements.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="classroomDisconnectedState" class="connection-body" style="padding-top:12px;">
+                        <div style="font-size:0.83rem; color:var(--text-secondary); line-height:1.5; margin-bottom:14px;">
+                            Connect your Google student account using official Google sign-in. StudyVerse requests only minimum read-only permissions to view your active classes and assignments without modifying anything.
+                        </div>
+
+                        <button id="btnConnectGoogleClassroom" class="gsi-material-button" type="button">
+                            <div class="gsi-material-button-state"></div>
+                            <div class="gsi-material-button-content-wrapper">
+                                <div class="gsi-material-button-icon">
+                                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" style="display:block;">
+                                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path>
+                                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path>
+                                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path>
+                                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path>
+                                    </svg>
+                                </div>
+                                <span class="gsi-material-button-contents">Connect Google Classroom</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div id="classroomConnectedState" class="connection-body" style="display:none; padding-top:12px;">
+                        <div class="connected-account-box">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <img id="settingsClassroomUserImg" class="connected-user-avatar" src="" alt="Google User" style="display:none;">
+                                <div id="settingsClassroomUserInitials" class="connected-user-initials">S</div>
+                                <div>
+                                    <div id="settingsClassroomUserName" style="font-weight:600; font-size:0.88rem; color:var(--text-primary);">Student Account</div>
+                                    <div id="settingsClassroomUserEmail" style="font-size:0.75rem; color:var(--text-muted);">student@school.edu</div>
+                                </div>
+                            </div>
+                            <span class="permission-tag">Read-only student access</span>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; font-size:0.76rem; color:var(--text-muted);">
+                            <span id="settingsClassroomLastSync">Last synced: Just now</span>
+                            <div style="display:flex; gap:8px;">
+                                <button id="btnSettingsClassroomSync" class="btn btn-secondary btn-sm" type="button">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sync-spin-icon">
+                                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                                    </svg>
+                                    <span>Sync now</span>
+                                </button>
+                                <button id="btnDisconnectGoogleClassroom" class="btn btn-danger btn-sm" type="button">Disconnect</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="settingsTabGeneral" class="settings-tab-content" style="display:none;">
+                <div class="card" style="padding:14px; margin-bottom:12px;">
+                    <div style="font-weight:600; font-size:0.9rem; margin-bottom:4px;">Workspace Storage</div>
+                    <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">All tasks, courses, notes, and metrics are saved locally in your active student session.</div>
+                    <button class="btn btn-subtle btn-sm" onclick="document.getElementById('settingsModal').classList.remove('show'); document.getElementById('resetConfirmModal').classList.add('show');">
+                        Reset Workspace Data
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" type="button" onclick="document.getElementById('settingsModal').classList.remove('show')">Close</button>
             </div>
         </div>
     </div>

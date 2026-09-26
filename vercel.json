@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "api/index.js": {
-      "includeFiles": "{index.html,app.css,app.js,sw.js,assets/**,assets/*}"
+      "includeFiles": "{index.html,app.css,app.js,sw.js,firebase-applet-config.json,assets/**,assets/*}"
     }
   },
   "rewrites": [
