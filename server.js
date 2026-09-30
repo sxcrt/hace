@@ -206,53 +206,78 @@ app.get("/api/updates", (req, res) => {
 
     if (!updatesData) {
         updatesData = {
-            currentVersion: "1.3.0",
+            currentVersion: "1.3.1",
             latest: {
-                version: "1.3.0",
+                version: "1.3.1",
                 date: "2026-09-30",
                 displayDate: "September 30, 2026",
-                title: "v1.3.0 Complete App Design & Workflow Update",
-                summary: "Major UI audit and usability improvements across Flashcards, Todo List, Notes, Dashboard, and Profile management.",
+                title: "v1.3.1",
+                summary: "Independent week calendar navigation, auto-completing Classroom tasks, and cleaner fonts.",
                 changes: [
                     {
-                        category: "feature",
-                        tag: "NEW",
-                        title: "Flashcards Search & Bulk Deck Actions",
-                        description: "Filter flashcard decks in real-time by title or course tag, and select multiple decks for instant bulk deletion."
-                    },
-                    {
-                        category: "feature",
-                        tag: "NEW",
-                        title: "Deck Settings & Course Assignment Flow",
-                        description: "Easily rename decks and assign courses in a dedicated modal flow without card clutter."
-                    },
-                    {
-                        category: "improvement",
-                        tag: "IMPROVED",
-                        title: "Two-Zone Task Creator & Clean Empty States",
-                        description: "Streamlined task input with separate zones for options, plus centered empty state prompts across Todo, Notes, and Courses."
-                    },
-                    {
-                        category: "improvement",
-                        tag: "IMPROVED",
-                        title: "Notes Split-Pane Layout",
-                        description: "Fixed two-panel layout with left navigation sidebar and right editing pane for seamless note-taking."
-                    },
-                    {
-                        category: "improvement",
-                        tag: "IMPROVED",
-                        title: "Custom Avatar Uploads & Dashboard Cards",
-                        description: "Upload custom profile photos with a styled button, and enjoy taller, unified stat cards on your Dashboard."
+                        category: "fix",
+                        tag: "FIX",
+                        title: "Calendar Week Navigation",
+                        description: "Week view now moves week-by-week independently of Month view."
                     },
                     {
                         category: "fix",
                         tag: "FIX",
-                        title: "Dark Theme Modals & Dialog Polish",
-                        description: "Unified frosted glass dialogs, clear danger zone actions, and refined calendar cell hover effects."
+                        title: "Google Classroom Auto-Completion",
+                        description: "Submitted and graded assignments now automatically mark as completed."
+                    },
+                    {
+                        category: "improvement",
+                        tag: "IMPROVED",
+                        title: "Refined Typography",
+                        description: "Updated headings to Sora and DM Sans fonts."
                     }
                 ]
             },
             history: [
+                {
+                    version: "1.3.0",
+                    title: "v1.3.0",
+                    date: "2026-09-30",
+                    changes: [
+                        {
+                            category: "feature",
+                            tag: "NEW",
+                            title: "Flashcard Search & Bulk Delete",
+                            description: "Filter decks by title or tag, and delete multiple decks at once."
+                        },
+                        {
+                            category: "feature",
+                            tag: "NEW",
+                            title: "Deck Settings Modal",
+                            description: "Rename decks and assign courses from a dedicated modal."
+                        },
+                        {
+                            category: "improvement",
+                            tag: "IMPROVED",
+                            title: "Cleaner Page Layouts",
+                            description: "Simplified task creator and updated empty states across views."
+                        },
+                        {
+                            category: "improvement",
+                            tag: "IMPROVED",
+                            title: "Notes Split View",
+                            description: "Side-by-side sidebar navigation and note editor."
+                        },
+                        {
+                            category: "improvement",
+                            tag: "IMPROVED",
+                            title: "Custom Avatars & Dashboard Cards",
+                            description: "Upload custom profile photos and view taller dashboard stat cards."
+                        },
+                        {
+                            category: "fix",
+                            tag: "FIX",
+                            title: "Dark Mode Polish",
+                            description: "Fixed dialog styling and calendar hover states in dark mode."
+                        }
+                    ]
+                },
                 {
                     version: "1.2.0",
                     title: "v1.2.0",
@@ -261,26 +286,26 @@ app.get("/api/updates", (req, res) => {
                         {
                             category: "feature",
                             tag: "NEW",
-                            title: "New update announcements",
-                            description: "Stay up to date with pop-up release notes whenever fresh study tools, bug fixes, and improvements arrive."
+                            title: "What's New Modal",
+                            description: "Added popup release notes for new updates."
                         },
                         {
                             category: "improvement",
                             tag: "IMPROVED",
-                            title: "Your session is now saved across updates",
-                            description: "Your student profile, preferences, flashcard decks, and notes remain safely preserved in cookies across updates."
+                            title: "Persistent Sessions",
+                            description: "Your profile, notes, and decks now persist across updates."
                         },
                         {
                             category: "improvement",
                             tag: "IMPROVED",
-                            title: "Faster Google Classroom sync",
-                            description: "Improved background sync for your enrolled courses, class announcements, and assignment deadlines."
+                            title: "Faster Classroom Sync",
+                            description: "Faster sync for courses, announcements, and deadlines."
                         },
                         {
                             category: "fix",
                             tag: "FIX",
-                            title: "Smoother flashcard flip & keyboard shortcuts",
-                            description: "Optimized recall rating buttons (1-4 number keys), progress tracking, and instant card flip animations."
+                            title: "Flashcard Shortcuts & Animations",
+                            description: "Added number key shortcuts (1-4) and smoother card flip animations."
                         }
                     ]
                 }

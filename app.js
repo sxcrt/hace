@@ -2764,11 +2764,21 @@
         viewMode: 'month',
         currentMonth: new Date().getMonth(),
         currentYear: new Date().getFullYear(),
+        currentWeekStart: null,
         selectedDateStr: null,
 
         init() {
+            this.initWeekStart();
             this.bindEvents();
             this.render();
+        },
+
+        initWeekStart() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const sun = new Date(today);
+            sun.setDate(today.getDate() - today.getDay());
+            this.currentWeekStart = sun;
         },
 
         bindEvents() {
@@ -2777,20 +2787,32 @@
             const todayBtn = document.getElementById('calTodayBtn');
 
             if (prevBtn) prevBtn.addEventListener('click', () => {
-                this.currentMonth--;
-                if (this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; }
+                if (this.viewMode === 'week') {
+                    if (!this.currentWeekStart) this.initWeekStart();
+                    this.currentWeekStart.setDate(this.currentWeekStart.getDate() - 7);
+                } else {
+                    this.currentMonth--;
+                    if (this.currentMonth < 0) { this.currentMonth = 11; this.currentYear--; }
+                }
                 this.render();
             });
 
             if (nextBtn) nextBtn.addEventListener('click', () => {
-                this.currentMonth++;
-                if (this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; }
+                if (this.viewMode === 'week') {
+                    if (!this.currentWeekStart) this.initWeekStart();
+                    this.currentWeekStart.setDate(this.currentWeekStart.getDate() + 7);
+                } else {
+                    this.currentMonth++;
+                    if (this.currentMonth > 11) { this.currentMonth = 0; this.currentYear++; }
+                }
                 this.render();
             });
 
             if (todayBtn) todayBtn.addEventListener('click', () => {
-                this.currentMonth = new Date().getMonth();
-                this.currentYear = new Date().getFullYear();
+                const now = new Date();
+                this.currentMonth = now.getMonth();
+                this.currentYear = now.getFullYear();
+                this.initWeekStart();
                 this.render();
             });
 
@@ -2799,6 +2821,9 @@
                     document.querySelectorAll('.cal-tab-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     this.viewMode = btn.dataset.calView || 'month';
+                    if (this.viewMode === 'week' && !this.currentWeekStart) {
+                        this.initWeekStart();
+                    }
                     this.render();
                 });
             });
@@ -3046,17 +3071,32 @@
 
         render() {
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthShortNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             const titleEl = document.getElementById('calMonthTitle');
-            if (titleEl) titleEl.textContent = `${monthNames[this.currentMonth]} ${this.currentYear}`;
 
             const monthContainer = document.getElementById('calMonthViewContainer');
             const weekContainer = document.getElementById('calWeekViewContainer');
 
             if (this.viewMode === 'week') {
+                if (!this.currentWeekStart) this.initWeekStart();
+                const weekEnd = new Date(this.currentWeekStart);
+                weekEnd.setDate(this.currentWeekStart.getDate() + 6);
+
+                let titleText = '';
+                if (this.currentWeekStart.getMonth() === weekEnd.getMonth()) {
+                    titleText = `${monthShortNames[this.currentWeekStart.getMonth()]} ${this.currentWeekStart.getDate()} – ${weekEnd.getDate()}, ${this.currentWeekStart.getFullYear()}`;
+                } else if (this.currentWeekStart.getFullYear() === weekEnd.getFullYear()) {
+                    titleText = `${monthShortNames[this.currentWeekStart.getMonth()]} ${this.currentWeekStart.getDate()} – ${monthShortNames[weekEnd.getMonth()]} ${weekEnd.getDate()}, ${this.currentWeekStart.getFullYear()}`;
+                } else {
+                    titleText = `${monthShortNames[this.currentWeekStart.getMonth()]} ${this.currentWeekStart.getDate()}, ${this.currentWeekStart.getFullYear()} – ${monthShortNames[weekEnd.getMonth()]} ${weekEnd.getDate()}, ${weekEnd.getFullYear()}`;
+                }
+
+                if (titleEl) titleEl.textContent = titleText;
                 if (monthContainer) monthContainer.style.display = 'none';
                 if (weekContainer) weekContainer.style.display = 'block';
                 this.renderWeekView();
             } else {
+                if (titleEl) titleEl.textContent = `${monthNames[this.currentMonth]} ${this.currentYear}`;
                 if (monthContainer) monthContainer.style.display = 'block';
                 if (weekContainer) weekContainer.style.display = 'none';
                 this.renderMonthView();
@@ -3107,9 +3147,12 @@
             const weekGrid = document.getElementById('calWeekGrid');
             if (!weekGrid) return;
 
+            if (!this.currentWeekStart) this.initWeekStart();
+            const sun = new Date(this.currentWeekStart);
+            sun.setHours(0, 0, 0, 0);
+
             const today = new Date();
-            const sun = new Date(today);
-            sun.setDate(today.getDate() - today.getDay());
+            today.setHours(0, 0, 0, 0);
 
             const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -3118,19 +3161,34 @@
                 const dayDate = new Date(sun);
                 dayDate.setDate(sun.getDate() + i);
 
-                const dateKey = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
-                const isToday = today.toDateString() === dayDate.toDateString();
+                const yearStr = dayDate.getFullYear();
+                const monthStr = String(dayDate.getMonth() + 1).padStart(2, '0');
+                const dayStr = String(dayDate.getDate()).padStart(2, '0');
+                const dateKey = `${yearStr}-${monthStr}-${dayStr}`;
+
+                const isToday = today.getTime() === dayDate.getTime();
                 const dayEvents = this.getSortedEvents(dateKey); 
 
                 html += `
-                    <div class="week-col" onclick="window.StudyVerse.Calendar.openInspector('${dateKey}')">
+                    <div class="week-col" data-date="${dateKey}"
+                         ondragover="event.preventDefault(); this.classList.add('drag-target-hover');"
+                         ondragleave="this.classList.remove('drag-target-hover');"
+                         ondrop="window.StudyVerse.Calendar.handleEventDrop(event, '${dateKey}')"
+                         onclick="window.StudyVerse.Calendar.openInspector('${dateKey}')">
                         <div class="week-col-header" style="${isToday ? 'color:var(--sv-orange); font-weight:800;' : ''}">
                             ${dayNames[i].slice(0, 3)} ${dayDate.getDate()}
                         </div>
                         <div class="week-col-body">
                             ${dayEvents.map(ev => `
-                                <div class="card" style="padding:6px 8px; font-size:0.75rem;">
-                                    <div style="font-weight:700; color:var(--text-primary);">${escapeHtml(ev.title)}</div>
+                                <div class="card ${ev.completed ? 'completed' : ''}" style="padding:6px 8px; font-size:0.75rem; margin-bottom:6px; cursor:pointer;"
+                                     draggable="true"
+                                     ondragstart="window.StudyVerse.Calendar.handleEventDragStart(event, '${ev.id}')"
+                                     onclick="event.stopPropagation(); window.StudyVerse.Calendar.openInspector('${dateKey}')"
+                                     title="${escapeHtml(ev.title)} (${escapeHtml(ev.time || '')})">
+                                    <div style="font-weight:700; color:var(--text-primary); ${ev.completed ? 'text-decoration:line-through; opacity:0.6;' : ''}">
+                                        ${ev.completed ? '✓ ' : ''}${escapeHtml(ev.title)}
+                                    </div>
+                                    ${ev.time ? `<div style="font-size:0.7rem; color:var(--text-muted); font-family:var(--font-mono); margin-top:2px;">${escapeHtml(ev.time)}</div>` : ''}
                                 </div>
                             `).join('')}
                             ${dayEvents.length === 0 ? `<div style="text-align:center; padding-top:16px; font-size:0.74rem; color:var(--text-dim); font-weight:500;">+ Add Event</div>` : ''}
@@ -4599,11 +4657,11 @@
             const latest = (this.data && this.data.latest) || {
                 version: this.currentVersion,
                 displayDate: 'September 30, 2026',
-                summary: 'Here is what changed in the latest StudyVerse update!',
+                summary: 'Independent week calendar navigation, auto-completing Classroom tasks, and cleaner fonts.',
                 changes: [
-                    { category: 'feature', tag: 'NEW', title: 'Floating Release Notification System', description: 'Automatic release notes that notify returning scholars about fresh site updates.' },
-                    { category: 'improvement', tag: 'IMPROVED', title: 'Seamless Guest Cookie Persistence', description: 'Your student session and guest cookies stay intact across site updates.' },
-                    { category: 'improvement', tag: 'IMPROVED', title: 'Google Classroom & Course Sync', description: 'Enhanced coursework and stream syncing.' }
+                    { category: 'fix', tag: 'FIX', title: 'Calendar Week Navigation', description: 'Week view now moves week-by-week independently of Month view.' },
+                    { category: 'fix', tag: 'FIX', title: 'Google Classroom Auto-Completion', description: 'Submitted and graded assignments now automatically mark as completed.' },
+                    { category: 'improvement', tag: 'IMPROVED', title: 'Refined Typography', description: 'Updated headings to Sora and DM Sans fonts.' }
                 ]
             };
 
