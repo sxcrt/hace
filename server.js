@@ -654,11 +654,13 @@ app.post("/api/classroom/sync", async (req, res) => {
 
                     let submissionsMap = {};
                     try {
-                        const subsRes = await fetch(`https://classroom.googleapis.com/v1/courses/${courseId}/courseWork/-/studentSubmissions?userId=me&pageSize=50`, { headers });
+                        const subsRes = await fetch(`https://classroom.googleapis.com/v1/courses/${courseId}/courseWork/-/studentSubmissions?userId=me&pageSize=100`, { headers });
                         if (subsRes.ok) {
                             const subsData = await subsRes.json();
                             (subsData.studentSubmissions || []).forEach(sub => {
-                                submissionsMap[sub.courseWorkId] = sub;
+                                if (sub && sub.courseWorkId) {
+                                    submissionsMap[sub.courseWorkId] = sub;
+                                }
                             });
                         }
                     } catch (subErr) {
@@ -669,10 +671,20 @@ app.post("/api/classroom/sync", async (req, res) => {
                         const sub = submissionsMap[cw.id];
                         let status = "Assigned";
                         if (sub) {
-                            if (sub.state === "TURNED_IN") status = "Turned in";
-                            else if (sub.state === "RETURNED") status = "Graded";
-                            else if (sub.state === "RECLAIMED_BY_STUDENT" || sub.state === "CREATED" || sub.state === "NEW") status = "Assigned";
-                            else status = sub.state || "Assigned";
+                            const stateUpper = String(sub.state || "").toUpperCase();
+                            if (stateUpper === "TURNED_IN" || stateUpper === "SUBMITTED") {
+                                status = "Turned in";
+                            } else if (stateUpper === "RETURNED" || stateUpper === "GRADED") {
+                                status = "Graded";
+                            } else if (sub.assignedGrade !== undefined && sub.assignedGrade !== null) {
+                                status = "Graded";
+                            } else if (sub.shortExactScore !== undefined && sub.shortExactScore !== null) {
+                                status = "Graded";
+                            } else if (stateUpper === "RECLAIMED_BY_STUDENT" || stateUpper === "CREATED" || stateUpper === "NEW") {
+                                status = "Assigned";
+                            } else {
+                                status = sub.state || "Assigned";
+                            }
                         }
 
                         let dueIso = null;

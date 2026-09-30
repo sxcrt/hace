@@ -499,7 +499,121 @@
 
             const savedTheme = localStorage.getItem('studyverse_theme') || this.data.profile.theme || 'light';
             this.setTheme(savedTheme, false);
+            this.syncTasksAndEvents();
             this.updateProfileUI();
+        },
+
+        syncTasksAndEvents() {
+            if (this._isSyncingTasksEvents) return;
+            this._isSyncingTasksEvents = true;
+
+            try {
+                this.data.tasks = this.data.tasks || [];
+                this.data.events = this.data.events || [];
+
+                const todayStr = new Date().toISOString().split('T')[0];
+
+                // 1. Sync tasks with dueDate to events
+                this.data.tasks.forEach(task => {
+                    if (task.dueDate) {
+                        let matchingEvt = this.data.events.find(e => e.taskId === task.id || (task.eventId && e.id === task.eventId) || e.id === `evt_${task.id}`);
+                        const course = (this.data.courses || []).find(c => c.id === task.courseId);
+                        const tag = course ? course.code : (task.priority === 'high' ? 'High Priority' : (task.type === 'classroom' ? 'Classroom' : 'Assignment'));
+                        const timeStr = task.dueTime ? formatTime12h(task.dueTime) : 'All Day';
+
+                        if (matchingEvt) {
+                            matchingEvt.taskId = task.id;
+                            matchingEvt.date = task.dueDate;
+                            matchingEvt.title = task.title;
+                            matchingEvt.time = timeStr;
+                            matchingEvt.tag = tag;
+                            matchingEvt.desc = task.subtext || '';
+                            matchingEvt.completed = !!task.completed;
+                            task.eventId = matchingEvt.id;
+                        } else {
+                            const evtId = task.eventId || `evt_${task.id}`;
+                            matchingEvt = {
+                                id: evtId,
+                                taskId: task.id,
+                                date: task.dueDate,
+                                title: task.title,
+                                time: timeStr,
+                                tag: tag,
+                                desc: task.subtext || '',
+                                completed: !!task.completed
+                            };
+                            task.eventId = evtId;
+                            this.data.events.push(matchingEvt);
+                        }
+                    } else {
+                        // Task has no dueDate. Remove any synced event
+                        const evtIdx = this.data.events.findIndex(e => e.taskId === task.id || (task.eventId && e.id === task.eventId) || e.id === `evt_${task.id}`);
+                        if (evtIdx > -1) {
+                            this.data.events.splice(evtIdx, 1);
+                        }
+                    }
+                });
+
+                // 2. Sync events to tasks
+                this.data.events.forEach(evt => {
+                    if (evt.date) {
+                        let matchingTask = this.data.tasks.find(t => t.id === evt.taskId || (evt.id && t.eventId === evt.id) || t.id === `task_${evt.id}`);
+                        const dueTime = parseTime12hTo24h(evt.time);
+                        const isToday = evt.date === todayStr;
+
+                        if (matchingTask) {
+                            evt.taskId = matchingTask.id;
+                            matchingTask.eventId = evt.id;
+                            matchingTask.title = evt.title;
+                            matchingTask.dueDate = evt.date;
+                            matchingTask.dueTime = dueTime || matchingTask.dueTime;
+                            matchingTask.isToday = isToday;
+                            matchingTask.subtext = evt.desc || matchingTask.subtext || '';
+                            matchingTask.completed = !!evt.completed;
+                        } else {
+                            const taskId = evt.taskId || `task_${evt.id}`;
+                            evt.taskId = taskId;
+                            matchingTask = {
+                                id: taskId,
+                                eventId: evt.id,
+                                title: evt.title,
+                                dueDate: evt.date,
+                                dueTime: dueTime,
+                                isToday: isToday,
+                                courseId: null,
+                                subtext: evt.desc || '',
+                                priority: evt.tag === 'Exam' ? 'high' : 'medium',
+                                completed: !!evt.completed,
+                                subtasks: [],
+                                type: evt.id && evt.id.startsWith('cr_') ? 'classroom' : 'calendar_event',
+                                createdAt: new Date().toISOString()
+                            };
+                            this.data.tasks.unshift(matchingTask);
+                        }
+                    }
+                });
+
+                // 3. Cleanup orphaned events or tasks
+                const validTaskIds = new Set(this.data.tasks.map(t => t.id));
+                const validEventIds = new Set(this.data.events.map(e => e.id));
+
+                this.data.events = this.data.events.filter(evt => {
+                    if (evt.taskId && !validTaskIds.has(evt.taskId)) {
+                        return false;
+                    }
+                    return true;
+                });
+
+                this.data.tasks = this.data.tasks.filter(task => {
+                    if (task.eventId && !validEventIds.has(task.eventId)) {
+                        return false;
+                    }
+                    return true;
+                });
+
+            } finally {
+                this._isSyncingTasksEvents = false;
+            }
         },
 
         setTheme(theme, save = true) {
@@ -555,6 +669,7 @@
         },
 
         async save() {
+            this.syncTasksAndEvents();
             localStorage.setItem('studyverse_user_data', JSON.stringify(this.data));
             if (this.uid) {
                 localStorage.setItem('studyverse_uid_local', this.uid);
@@ -2066,6 +2181,21 @@
         return `${hours}:${minutes} ${ampm}`;
     }
 
+    function parseTime12hTo24h(timeStr) {
+        if (!timeStr || timeStr.toLowerCase() === 'all day' || timeStr.toLowerCase() === 'deadline') return null;
+        const firstPart = timeStr.split('-')[0].trim();
+        const ampmMatch = firstPart.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+        if (!ampmMatch) return null;
+        let hours = parseInt(ampmMatch[1], 10);
+        const minutes = ampmMatch[2];
+        const ampm = ampmMatch[3] ? ampmMatch[3].toUpperCase() : null;
+        if (ampm) {
+            if (ampm === 'PM' && hours < 12) hours += 12;
+            if (ampm === 'AM' && hours === 12) hours = 0;
+        }
+        return `${String(hours).padStart(2, '0')}:${minutes}`;
+    }
+
     function formatTaskDateAndTime(dateStr, timeStr, isToday, showTime = true) {
         if (!dateStr && !timeStr) {
             return isToday ? 'Today' : '';
@@ -2190,6 +2320,58 @@
             Calendar.render();
         },
 
+        openEditTaskModal(taskId) {
+            const task = (Store.data.tasks || []).find(t => t.id === taskId);
+            if (!task) return;
+
+            const modal = document.getElementById('editTaskModal');
+            if (!modal) return;
+
+            document.getElementById('editTaskId').value = task.id;
+            document.getElementById('editTaskTitleInput').value = task.title || '';
+            document.getElementById('editTaskDueDateInput').value = task.dueDate || '';
+            document.getElementById('editTaskDueTimeInput').value = task.dueTime || '';
+            document.getElementById('editTaskPrioritySelect').value = task.priority || 'medium';
+            document.getElementById('editTaskSubtextInput').value = task.subtext || '';
+
+            const courseSelect = document.getElementById('editTaskCourseSelect');
+            if (courseSelect) {
+                const courses = Store.data.courses || [];
+                courseSelect.innerHTML = `<option value="">No Course (General)</option>` +
+                    courses.map(c => `<option value="${c.id}" ${task.courseId === c.id ? 'selected' : ''}>${escapeHtml(c.code)} - ${escapeHtml(c.title)}</option>`).join('');
+                courseSelect.value = task.courseId || '';
+            }
+
+            modal.classList.add('show');
+        },
+
+        saveTaskEdit() {
+            const taskId = document.getElementById('editTaskId')?.value;
+            const title = (document.getElementById('editTaskTitleInput')?.value || '').trim();
+            if (!taskId || !title) return;
+
+            const task = (Store.data.tasks || []).find(t => t.id === taskId);
+            if (!task) return;
+
+            task.title = title;
+            task.dueDate = document.getElementById('editTaskDueDateInput')?.value || null;
+            task.dueTime = document.getElementById('editTaskDueTimeInput')?.value || null;
+            task.priority = document.getElementById('editTaskPrioritySelect')?.value || 'medium';
+            task.courseId = document.getElementById('editTaskCourseSelect')?.value || null;
+            task.subtext = (document.getElementById('editTaskSubtextInput')?.value || '').trim() || null;
+            task.isToday = task.dueDate === new Date().toISOString().split('T')[0];
+
+            Store.save();
+
+            const modal = document.getElementById('editTaskModal');
+            if (modal) modal.classList.remove('show');
+
+            this.render();
+            Dashboard.render();
+            Calendar.render();
+            Toast.show(`Updated task "${title}"`);
+        },
+
         addSubtask(taskId, inputEl) {
             const title = (inputEl.value || '').trim();
             if (!title) return;
@@ -2256,7 +2438,7 @@
             const todayStr = new Date().toISOString().split('T')[0];
             const todayTasks = tasks.filter(t => (t.isToday || t.dueDate === todayStr) && !t.completed);
             const otherTasks = tasks.filter(t => (!t.isToday && t.dueDate !== todayStr) && !t.completed);
-            const completedTasks = tasks.filter(t => t.completed && !t.id.startsWith('cr_task_'));
+            const completedTasks = tasks.filter(t => t.completed);
 
             let html = '';
 
@@ -2313,6 +2495,9 @@
                                 </span>
                             ` : ''}
                             ${subs.length > 0 ? `<span style="font-family:var(--font-mono); font-size:0.72rem;">${completedSubs}/${subs.length}</span>` : ''}
+                            <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Tasks.openEditTaskModal('${t.id}')" title="Edit Task" style="padding:2px 6px; font-size:0.75rem;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                            </button>
                             <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Tasks.deleteTask('${t.id}')">&times;</button>
                         </div>
                     </div>
@@ -2626,25 +2811,8 @@
         },
 
         getSortedEvents(dateFilter = null) {
-            let list = (Store.data.events || []).map(e => ({ ...e, isTask: false }));
-
-            const tasksWithDeadline = (Store.data.tasks || []).filter(t => t.dueDate && !t.completed);
-            tasksWithDeadline.forEach(t => {
-                const course = (Store.data.courses || []).find(c => c.id === t.courseId);
-                const tag = course ? course.code : (t.priority === 'high' ? 'High Priority' : 'Assignment');
-                const timeStr = t.dueTime ? formatTime12h(t.dueTime) : 'Deadline';
-                list.push({
-                    id: `task_evt_${t.id}`,
-                    isTask: true,
-                    taskId: t.id,
-                    completed: t.completed,
-                    date: t.dueDate,
-                    title: t.title,
-                    time: timeStr,
-                    tag: tag,
-                    desc: t.subtext || (t.completed ? 'Completed task' : 'Task deadline')
-                });
-            });
+            Store.syncTasksAndEvents();
+            let list = (Store.data.events || []).map(e => ({ ...e }));
 
             if (dateFilter) {
                 list = list.filter(e => e.date === dateFilter);
@@ -2661,6 +2829,107 @@
                 const scoreB = parseTimeScore(b.time);
                 return scoreA - scoreB;
             });
+        },
+
+        toggleEvent(id) {
+            const evt = (Store.data.events || []).find(e => e.id === id);
+            if (!evt) return;
+            evt.completed = !evt.completed;
+            Store.save();
+            this.renderInspectorEventsList();
+            this.render();
+            Dashboard.render();
+            Tasks.render();
+        },
+
+        openEditEventModal(eventId) {
+            const evt = (Store.data.events || []).find(e => e.id === eventId);
+            if (!evt) return;
+
+            const modal = document.getElementById('editEventModal');
+            if (!modal) return;
+
+            document.getElementById('editEventId').value = evt.id;
+            document.getElementById('editEventTitleInput').value = evt.title || '';
+            document.getElementById('editEventDateInput').value = evt.date || '';
+
+            let startTime = '09:00';
+            let endTime = '10:00';
+            if (evt.time) {
+                const parts = evt.time.split('-');
+                const parsedStart = parseTime12hTo24h(parts[0]);
+                if (parsedStart) startTime = parsedStart;
+                if (parts[1]) {
+                    const parsedEnd = parseTime12hTo24h(parts[1]);
+                    if (parsedEnd) endTime = parsedEnd;
+                }
+            }
+            document.getElementById('editEventStartTimeInput').value = startTime;
+            document.getElementById('editEventEndTimeInput').value = endTime;
+            document.getElementById('editEventTagSelect').value = evt.tag || 'Lecture';
+            document.getElementById('editEventDescInput').value = evt.desc || '';
+
+            modal.classList.add('show');
+        },
+
+        saveEventEdit() {
+            const evtId = document.getElementById('editEventId')?.value;
+            const title = (document.getElementById('editEventTitleInput')?.value || '').trim();
+            if (!evtId || !title) return;
+
+            const evt = (Store.data.events || []).find(e => e.id === evtId);
+            if (!evt) return;
+
+            const date = document.getElementById('editEventDateInput')?.value || evt.date;
+            const startTime = document.getElementById('editEventStartTimeInput')?.value || '';
+            const endTime = document.getElementById('editEventEndTimeInput')?.value || '';
+            const tag = document.getElementById('editEventTagSelect')?.value || 'Lecture';
+            const desc = (document.getElementById('editEventDescInput')?.value || '').trim();
+
+            const timeStr = startTime && endTime ? `${formatTime12h(startTime)} - ${formatTime12h(endTime)}` : (startTime ? formatTime12h(startTime) : 'All Day');
+
+            evt.title = title;
+            evt.date = date;
+            evt.time = timeStr;
+            evt.tag = tag;
+            evt.desc = desc;
+
+            Store.save();
+
+            const modal = document.getElementById('editEventModal');
+            if (modal) modal.classList.remove('show');
+
+            this.renderInspectorEventsList();
+            this.render();
+            Dashboard.render();
+            Tasks.render();
+            Toast.show(`Updated event "${title}"`);
+        },
+
+        handleEventDragStart(e, evtId) {
+            e.stopPropagation();
+            e.dataTransfer.setData('text/plain', evtId);
+            e.dataTransfer.setData('studyverse/type', 'event');
+            this.draggedEventId = evtId;
+        },
+
+        handleEventDrop(e, targetDateStr) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.querySelectorAll('.cal-cell').forEach(c => c.classList.remove('drag-target-hover'));
+            const evtId = this.draggedEventId || e.dataTransfer.getData('text/plain');
+            if (!evtId) return;
+
+            const evt = (Store.data.events || []).find(ev => ev.id === evtId);
+            if (evt) {
+                evt.date = targetDateStr;
+                Store.save();
+                this.render();
+                Dashboard.render();
+                Tasks.render();
+                Toast.show(`Rescheduled "${evt.title}" to ${new Date(targetDateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
+            }
+            this.draggedEventId = null;
         },
 
         openInspector(dateStr) {
@@ -2690,29 +2959,37 @@
             const events = this.getSortedEvents(this.selectedDateStr);
 
             if (events.length === 0) {
-                listEl.innerHTML = `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No events scheduled for this day yet.</div>`;
+                listEl.innerHTML = `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No events or tasks scheduled for this day yet.</div>`;
                 return;
             }
 
             listEl.innerHTML = events.map(e => `
-                <div class="card" style="padding:10px 12px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div style="flex:1;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            ${e.isTask ? `
-                                <div class="task-check ${e.completed ? 'checked' : ''}" style="width:14px; height:14px; margin-right:2px;" onclick="window.StudyVerse.Tasks.toggleTask('${e.taskId}')">
-                                    ${e.completed ? `<svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
-                                </div>
-                            ` : ''}
-                            <span style="font-weight:700; font-size:0.9rem; color:var(--text-primary); ${e.completed ? 'text-decoration:line-through; opacity:0.6;' : ''}">
-                                ${escapeHtml(e.title)}
-                            </span>
-                            <span style="font-size:0.7rem; font-weight:700; padding:1px 6px; border-radius:4px; background:var(--sv-orange-light); color:var(--sv-orange);">
-                                ${escapeHtml(e.tag || 'General')}
-                            </span>
+                <div class="card" style="padding:10px 12px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="flex:1; display:flex; align-items:center; gap:10px;">
+                        <div class="task-check ${e.completed ? 'checked' : ''}" style="width:16px; height:16px; flex-shrink:0; cursor:pointer;" onclick="window.StudyVerse.Calendar.toggleEvent('${e.id}')" title="Toggle completion">
+                            ${e.completed ? `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>` : ''}
                         </div>
-                        ${e.time ? `<div style="font-family:var(--font-mono); font-size:0.76rem; color:var(--text-muted); margin-top:2px; font-weight:600;">${escapeHtml(e.time)}</div>` : ''}
+                        <div style="flex:1;">
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <span style="font-weight:700; font-size:0.88rem; color:var(--text-primary); ${e.completed ? 'text-decoration:line-through; opacity:0.6;' : ''}">
+                                    ${escapeHtml(e.title)}
+                                </span>
+                                <span style="font-size:0.7rem; font-weight:700; padding:1px 6px; border-radius:4px; background:var(--sv-orange-light); color:var(--sv-orange);">
+                                    ${escapeHtml(e.tag || 'General')}
+                                </span>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:8px; margin-top:2px; font-size:0.75rem; color:var(--text-muted);">
+                                ${e.time ? `<span style="font-family:var(--font-mono); font-weight:600;">${escapeHtml(e.time)}</span>` : ''}
+                                ${e.desc ? `<span>· ${escapeHtml(e.desc)}</span>` : ''}
+                            </div>
+                        </div>
                     </div>
-                    <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Calendar.deleteEvent('${e.id}')">&times;</button>
+                    <div style="display:flex; align-items:center; gap:4px;">
+                        <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Calendar.openEditEventModal('${e.id}')" title="Edit Event" style="padding:2px 6px; font-size:0.78rem;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                        </button>
+                        <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Calendar.deleteEvent('${e.id}')" title="Delete Event">&times;</button>
+                    </div>
                 </div>
             `).join('');
         },
@@ -2730,7 +3007,7 @@
             const tag = document.getElementById('calEventTagInput')?.value || 'Lecture';
             const desc = (document.getElementById('calEventDescInput')?.value || '').trim();
 
-            const timeStr = startTime && endTime ? `${startTime} - ${endTime}` : (startTime || 'All Day');
+            const timeStr = startTime && endTime ? `${formatTime12h(startTime)} - ${formatTime12h(endTime)}` : (startTime ? formatTime12h(startTime) : 'All Day');
 
             const newEvent = {
                 id: `evt_${Date.now()}`,
@@ -2738,7 +3015,8 @@
                 title: title,
                 time: timeStr,
                 tag: tag,
-                desc: desc
+                desc: desc,
+                completed: false
             };
 
             Store.data.events = Store.data.events || [];
@@ -2751,22 +3029,19 @@
             this.renderInspectorEventsList();
             this.render();
             Dashboard.render();
-            Toast.show("Event added");
+            Tasks.render();
+            Toast.show("Event added to Calendar & Todo list");
         },
 
         deleteEvent(id) {
-            if (id && id.startsWith('task_evt_')) {
-                const taskId = id.replace('task_evt_', '');
-                Tasks.deleteTask(taskId);
-                this.renderInspectorEventsList();
-                this.render();
-                return;
-            }
-            Store.data.events = (Store.data.events || []).filter(e => e.id !== id);
+            Store.data.events = (Store.data.events || []).filter(e => e.id !== id && e.taskId !== id);
+            Store.data.tasks = (Store.data.tasks || []).filter(t => t.id !== id && t.eventId !== id);
             Store.save();
             this.renderInspectorEventsList();
             this.render();
             Dashboard.render();
+            Tasks.render();
+            Toast.show("Item deleted");
         },
 
         render() {
@@ -2807,12 +3082,19 @@
                 const dayEvents = this.getSortedEvents(dateKey);
 
                 html += `
-                    <div class="cal-cell ${isToday ? 'today' : ''}" onclick="window.StudyVerse.Calendar.openInspector('${dateKey}')">
+                    <div class="cal-cell ${isToday ? 'today' : ''}" data-date="${dateKey}"
+                         ondragover="event.preventDefault(); this.classList.add('drag-target-hover');"
+                         ondragleave="this.classList.remove('drag-target-hover');"
+                         ondrop="window.StudyVerse.Calendar.handleEventDrop(event, '${dateKey}')"
+                         onclick="window.StudyVerse.Calendar.openInspector('${dateKey}')">
                         <div class="cal-cell-num">${day}</div>
                         <div class="cal-cell-add-icon">+</div>
                         ${dayEvents.map(ev => `
-                            <div class="cal-event-pill" title="${escapeHtml(ev.title)} (${escapeHtml(ev.time || '')})">
-                                <span>${escapeHtml(ev.title)}</span>
+                            <div class="cal-event-pill ${ev.completed ? 'completed' : ''}" draggable="true"
+                                 ondragstart="window.StudyVerse.Calendar.handleEventDragStart(event, '${ev.id}')"
+                                 onclick="event.stopPropagation(); window.StudyVerse.Calendar.openInspector('${dateKey}')"
+                                 title="${escapeHtml(ev.title)} (${escapeHtml(ev.time || '')})">
+                                <span>${ev.completed ? '✓ ' : ''}${escapeHtml(ev.title)}</span>
                             </div>
                         `).join('')}
                     </div>
@@ -3494,56 +3776,84 @@
             
             Store.data.tasks = Store.data.tasks || [];
             Store.data.events = Store.data.events || [];
+
+            const isCompletedStatus = (status) => {
+                if (!status) return false;
+                const s = String(status).toLowerCase().replace(/[^a-z]/g, '');
+                return s === 'turnedin' || s === 'graded' || s === 'returned' || s === 'completed' || s === 'done' || s === 'submitted';
+            };
             
             upcomingItems.forEach(item => {
                 const taskId = `cr_task_${item.id}`;
                 const eventId = `cr_evt_${item.id}`;
+                const shouldBeCompleted = isCompletedStatus(item.status);
                 
                 // 1. Sync to study tasks list
-                const taskExists = Store.data.tasks.some(t => t.id === taskId);
-                if (!taskExists) {
+                let task = Store.data.tasks.find(t => t.id === taskId);
+                if (!task) {
                     const taskTitle = item.courseName ? `[${item.courseName}] ${item.title}` : item.title;
                     const isToday = item.dueDate === new Date().toISOString().split('T')[0];
                     
-                    Store.data.tasks.unshift({
+                    task = {
                         id: taskId,
                         title: taskTitle,
                         isToday: isToday,
                         dueDate: item.dueDate || null,
                         dueTime: item.dueTime || null,
                         subtext: item.alternateLink || null,
-                        completed: item.status === 'Turned in' || item.status === 'Graded',
+                        completed: shouldBeCompleted,
                         priority: item.status === 'Missing' ? 'high' : 'medium',
                         subtasks: [],
                         type: 'classroom',
                         createdAt: new Date().toISOString()
-                    });
+                    };
+                    Store.data.tasks.unshift(task);
                     tasksChanged = true;
                 } else {
                     // Update completion status if changed in classroom
-                    const task = Store.data.tasks.find(t => t.id === taskId);
-                    const shouldBeCompleted = item.status === 'Turned in' || item.status === 'Graded';
-                    if (task && task.completed !== shouldBeCompleted) {
+                    if (task.completed !== shouldBeCompleted) {
                         task.completed = shouldBeCompleted;
+                        tasksChanged = true;
+                    }
+                    if (item.dueDate && task.dueDate !== item.dueDate) {
+                        task.dueDate = item.dueDate;
+                        tasksChanged = true;
+                    }
+                    if (item.dueTime && task.dueTime !== item.dueTime) {
+                        task.dueTime = item.dueTime;
                         tasksChanged = true;
                     }
                 }
                 
                 // 2. Sync to study calendar list
-                const eventExists = Store.data.events.some(e => e.id === eventId);
-                if (!eventExists && item.dueDate) {
+                let event = Store.data.events.find(e => e.id === eventId || e.taskId === taskId);
+                if (!event && item.dueDate) {
                     const eventTitle = item.courseName ? `[${item.courseName}] ${item.title}` : item.title;
-                    Store.data.events.push({
+                    event = {
                         id: eventId,
+                        taskId: taskId,
                         date: item.dueDate,
                         title: eventTitle,
                         time: item.dueTime ? formatTime12h(item.dueTime) : 'All Day',
-                        tag: 'Assignment',
-                        desc: item.description || `Classroom course link: ${item.alternateLink || ''}`
-                    });
+                        tag: 'Classroom',
+                        desc: item.description || `Classroom course link: ${item.alternateLink || ''}`,
+                        completed: shouldBeCompleted
+                    };
+                    Store.data.events.push(event);
                     eventsChanged = true;
+                } else if (event) {
+                    if (event.completed !== shouldBeCompleted) {
+                        event.completed = shouldBeCompleted;
+                        eventsChanged = true;
+                    }
+                    if (item.dueDate && event.date !== item.dueDate) {
+                        event.date = item.dueDate;
+                        eventsChanged = true;
+                    }
                 }
             });
+
+            Store.syncTasksAndEvents();
             
             if (tasksChanged || eventsChanged) {
                 Store.save();
