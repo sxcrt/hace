@@ -71,6 +71,14 @@
                             </div>
                         </div>
 
+                        <button id="dropWhatsNewBtn" class="profile-menu-item" type="button">
+                            <span style="display:flex; align-items:center; gap:8px;">
+                                <span>What's New</span>
+                                <span id="dropWhatsNewBadge" class="whats-new-badge-pill" style="display:none;">NEW</span>
+                            </span>
+                            <span style="color:var(--text-dim);">&rarr;</span>
+                        </button>
+
                         <button id="dropSettingsBtn" class="profile-menu-item" type="button">
                             <span>Settings & Connections</span>
                             <span style="color:var(--text-dim);">&rarr;</span>
@@ -93,7 +101,7 @@
 
                         <div class="profile-menu-divider"></div>
 
-                        <button id="dropResetBtn" class="profile-menu-item btn-danger" type="button">
+                        <button id="dropResetBtn" class="profile-menu-item profile-menu-item-danger" type="button">
                             <span>Reset to Blank Slate</span>
                         </button>
                     </div>
@@ -228,6 +236,23 @@
                 </div>
 
                 <div id="fcTabDecks">
+                    <!-- Search and Bulk Actions Toolbar -->
+                    <div class="fc-decks-toolbar">
+                        <div class="fc-search-box">
+                            <svg class="fc-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                            <input type="text" id="fcDeckSearchInput" class="input fc-deck-search-input" placeholder="Search decks by title or tag..." autocomplete="off">
+                            <button id="fcDeckSearchClearBtn" class="btn btn-subtle btn-sm fc-search-clear-btn" type="button" style="display:none;" title="Clear search">&times;</button>
+                        </div>
+                        <div class="fc-bulk-actions">
+                            <button id="fcSelectAllDecksBtn" class="btn btn-secondary btn-sm" type="button">Select All</button>
+                            <button id="fcBulkDeleteBtn" class="btn btn-danger btn-sm" type="button" style="display:none; background:#dc2626; color:#fff; border-color:#dc2626;">
+                                Delete Selected (<span id="fcSelectedCount">0</span>)
+                            </button>
+                        </div>
+                    </div>
+                    <div id="fcDecksCountBar" class="fc-decks-count-bar"></div>
                     <div id="fcDecksList" class="decks-grid"></div>
                 </div>
 
@@ -362,9 +387,9 @@
                                         <div style="font-size:0.75rem; color:var(--text-dim); text-align:center;">Click card or press [Space] to flip</div>
                                     </div>
 
-                                    <div class="anki-card-back">
+                                     <div class="anki-card-back">
                                         <span class="anki-card-concept-tag">Back</span>
-                                        <div style="margin: auto 0;">
+                                        <div style="margin: auto 0; width:100%;">
                                              <div id="ankiCardBackQuestion" style="font-size:0.85rem; color:var(--text-muted); margin-bottom:6px;">Question</div>
                                             <div id="ankiCardAnswer" class="anki-card-body-text">Answer</div>
                                             <div id="ankiCardHint" class="card" style="display:none; padding:8px 12px; margin-top:10px; font-size:0.82rem; background:var(--bg-subtle);"></div>
@@ -435,7 +460,7 @@
                     <div style="display:flex; justify-content:center; align-items:center; gap:12px; margin-bottom:24px;">
                         <button id="pomoResetBtn" class="btn btn-secondary" type="button">Reset</button>
                         <button id="pomoStartBtn" class="btn btn-primary btn-lg" type="button">Start Focus</button>
-                        <button id="pomoSkipBtn" class="btn btn-subtle" type="button">Skip</button>
+                        <button id="pomoSkipBtn" class="btn btn-secondary" type="button">Skip</button>
                     </div>
                 </div>
             </section>
@@ -452,25 +477,32 @@
 
                 <div class="tasks-container">
                     <div class="task-creator-box">
-                        <div class="task-creator-main">
-                            <input type="text" id="taskInputTitle" class="task-creator-input" placeholder="Type a todo item and press Enter...">
-                            <button id="taskAddBtn" class="btn btn-primary btn-sm" type="button">Add</button>
+                        <div class="task-creator-primary-zone">
+                            <input type="text" id="taskInputTitle" class="task-creator-input" placeholder="What do you need to study or complete?">
+                            <button id="taskAddBtn" class="btn btn-primary" type="button">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                                <span>Add Task</span>
+                            </button>
                         </div>
-                        <div class="task-creator-meta">
-                            <button id="taskTodayChip" class="today-toggle-chip" type="button">Today</button>
-                            <input type="date" id="taskDueDateInput" class="input" style="width:auto; padding:2px 8px; font-size:0.75rem;" title="Due Date">
-                            <input type="time" id="taskDueTimeInput" class="input" style="width:auto; padding:2px 8px; font-size:0.75rem;" title="Due Time">
-                            <select id="taskCourseSelect" class="select" style="width:auto; padding:2px 8px; font-size:0.75rem;">
-                                <option value="">No Course (General)</option>
-                            </select>
-                            <select id="taskPrioritySelect" class="select" style="width:auto; padding:2px 8px; font-size:0.75rem;">
-                                <option value="medium">Medium Priority</option>
-                                <option value="high">High Priority</option>
-                                <option value="low">Low Priority</option>
-                            </select>
-                        </div>
-                        <div style="margin-top:8px;">
-                            <input type="text" id="taskSubtextInput" class="input" style="font-size:0.78rem; padding:4px 8px;" placeholder="Optional sub-text, instructions, or notes...">
+                        <div class="task-creator-secondary-zone">
+                            <div class="task-creator-meta">
+                                <button id="taskTodayChip" class="today-toggle-chip" type="button">Today</button>
+                                <input type="date" id="taskDueDateInput" class="input" style="width:auto; padding:2px 8px; font-size:0.75rem;" title="Due Date">
+                                <input type="time" id="taskDueTimeInput" class="input" style="width:auto; padding:2px 8px; font-size:0.75rem;" title="Due Time">
+                                <select id="taskCourseSelect" class="select" style="width:auto; padding:2px 8px; font-size:0.75rem;">
+                                    <option value="">No Course (General)</option>
+                                </select>
+                                <select id="taskPrioritySelect" class="select" style="width:auto; padding:2px 8px; font-size:0.75rem;">
+                                    <option value="medium">Medium Priority</option>
+                                    <option value="high">High Priority</option>
+                                    <option value="low">Low Priority</option>
+                                </select>
+                            </div>
+                            <div style="margin-top:6px;">
+                                <input type="text" id="taskSubtextInput" class="input" style="font-size:0.78rem; padding:4px 8px; width:100%;" placeholder="Optional sub-text, instructions, or reading notes...">
+                            </div>
                         </div>
                     </div>
 
@@ -532,9 +564,9 @@
                             <button class="cal-tab-btn active" data-cal-view="month">Month</button>
                             <button class="cal-tab-btn" data-cal-view="week">Weekdays</button>
                         </div>
-                        <button id="calPrevBtn" class="btn btn-secondary btn-sm">&larr;</button>
+                        <button id="calPrevBtn" class="btn btn-secondary btn-sm" title="Previous month">&larr; Prev</button>
                         <button id="calTodayBtn" class="btn btn-secondary btn-sm">Today</button>
-                        <button id="calNextBtn" class="btn btn-secondary btn-sm">&rarr;</button>
+                        <button id="calNextBtn" class="btn btn-secondary btn-sm" title="Next month">Next &rarr;</button>
                     </div>
                 </div>
 
@@ -817,8 +849,17 @@
 
             <div class="form-group">
                 <label class="form-label">Or Upload Custom Avatar Photo</label>
-                <input type="file" id="pfpFileInput" accept="image/*" class="input" style="font-size:0.8rem;">
-                <img id="pfpCustomPreview" style="display:none; width:48px; height:48px; border-radius:50%; margin-top:8px; object-fit:cover;" alt="PFP Preview">
+                <div style="display:flex; align-items:center; gap:12px; margin-top:6px;">
+                    <input type="file" id="pfpFileInput" accept="image/*" style="display:none;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('pfpFileInput').click()" style="border-color:var(--sv-orange-border); color:var(--sv-orange); background:var(--sv-orange-light); font-weight:600; display:inline-flex; align-items:center; gap:6px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <span>Choose Image...</span>
+                    </button>
+                    <span id="pfpFileNameLabel" style="font-size:0.78rem; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">No file chosen</span>
+                    <img id="pfpCustomPreview" style="display:none; width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid var(--sv-orange-border);" alt="PFP Preview">
+                </div>
             </div>
 
             <div class="modal-actions">
@@ -1058,17 +1099,145 @@
                     </div>
                 </div>
 
-                <div class="card" style="padding:14px; margin-bottom:12px;">
-                    <div style="font-weight:600; font-size:0.9rem; margin-bottom:4px;">Workspace Storage</div>
-                    <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">All tasks, courses, notes, and metrics are saved locally in your active student session.</div>
-                    <button class="btn btn-subtle btn-sm" onclick="document.getElementById('settingsModal').classList.remove('show'); document.getElementById('resetConfirmModal').classList.add('show');">
-                        Reset Workspace Data
+                <div class="card" style="padding:14px; margin-bottom:12px; border-color:rgba(220, 38, 38, 0.2);">
+                    <div style="font-weight:600; font-size:0.9rem; margin-bottom:4px; color:#dc2626;">Danger Zone</div>
+                    <div style="font-size:0.78rem; color:var(--text-muted); margin-bottom:12px;">Reset all tasks, courses, notes, flashcards, and metrics back to a clean blank slate.</div>
+                    <button class="btn btn-danger btn-sm" type="button" onclick="document.getElementById('settingsModal').classList.remove('show'); window.StudyVerse.Store.openResetModal();">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        <span>Reset Workspace Data</span>
                     </button>
                 </div>
             </div>
 
             <div class="modal-actions">
                 <button class="btn btn-secondary" type="button" onclick="document.getElementById('settingsModal').classList.remove('show')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Deck Confirmation Modal -->
+    <div id="deleteDeckConfirmModal" class="modal-backdrop">
+        <div class="modal-card" style="max-width:440px;">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>
+                    </svg>
+                    <h3 class="modal-title" style="color:#dc2626;">Delete Deck Permanently?</h3>
+                </div>
+                <button class="modal-close-btn" type="button" onclick="document.getElementById('deleteDeckConfirmModal').classList.remove('show')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom:12px;">
+                    Are you sure you want to permanently delete <strong id="deleteDeckTargetTitle" style="color:var(--text-primary);">this deck</strong>?
+                </p>
+                <div style="font-size:0.8rem; color:var(--text-muted); background:var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); margin-bottom:12px;">
+                    All cards, review intervals, mastery stats, and study progress in this deck will be deleted permanently.
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" type="button" onclick="document.getElementById('deleteDeckConfirmModal').classList.remove('show')">Cancel</button>
+                <button id="confirmDeleteDeckBtn" class="btn btn-danger" type="button">Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Delete Decks Confirmation Modal -->
+    <div id="bulkDeleteDecksModal" class="modal-backdrop">
+        <div class="modal-card" style="max-width:460px;">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/>
+                    </svg>
+                    <h3 class="modal-title" style="color:#dc2626;">Delete Selected Decks?</h3>
+                </div>
+                <button class="modal-close-btn" type="button" onclick="document.getElementById('bulkDeleteDecksModal').classList.remove('show')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom:12px;">
+                    Are you sure you want to permanently delete <strong id="bulkDeleteCountLabel" style="color:var(--text-primary);">0 decks</strong>?
+                </p>
+                <div id="bulkDeleteDecksSummaryList" style="max-height:160px; overflow-y:auto; margin-bottom:12px; font-size:0.8rem; background:var(--bg-subtle); padding:8px 12px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);"></div>
+                <div style="font-size:0.8rem; color:var(--text-muted); background:var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
+                    All cards, review intervals, mastery stats, and study progress in these decks will be deleted permanently.
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" type="button" onclick="document.getElementById('bulkDeleteDecksModal').classList.remove('show')">Cancel</button>
+                <button id="confirmBulkDeleteBtn" class="btn btn-danger" type="button">Delete Decks Permanently</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- What's New Floating Release Modal -->
+    <div id="whatsNewModal" class="modal-backdrop">
+        <div class="modal-card whats-new-modal-card">
+            <div class="whats-new-header">
+                <div class="whats-new-header-left">
+                    <div class="whats-new-sparkle-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <h2 class="whats-new-title">What's New in StudyVerse</h2>
+                            <span id="whatsNewVersionBadge" class="whats-new-version-badge">v1.2.0</span>
+                        </div>
+                        <div id="whatsNewReleaseDate" class="whats-new-date">Released September 30, 2026</div>
+                    </div>
+                </div>
+                <button id="whatsNewCloseX" class="modal-close-btn" type="button" aria-label="Close modal">&times;</button>
+            </div>
+
+            <div class="whats-new-body">
+                <div id="whatsNewChangesList" class="whats-new-changes-list"></div>
+
+                <div class="whats-new-history-toggle-wrap">
+                    <button id="whatsNewToggleHistoryBtn" class="btn btn-secondary btn-sm" type="button">
+                        <span id="whatsNewHistoryBtnText">View Past Updates</span>
+                        <svg id="whatsNewHistoryChevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div id="whatsNewHistoryContainer" class="whats-new-history-container" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deck Settings & Edit Modal -->
+    <div id="deckSettingsModal" class="modal-backdrop">
+        <div class="modal-card" style="max-width:440px;">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sv-orange)" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <h3 class="modal-title">Deck Settings</h3>
+                </div>
+                <button class="modal-close-btn" type="button" onclick="document.getElementById('deckSettingsModal').classList.remove('show')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="deckSettingsDeckId">
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label class="form-label" for="deckSettingsTitleInput">Deck Title</label>
+                    <input type="text" id="deckSettingsTitleInput" class="input" placeholder="Deck Title">
+                </div>
+                <div class="form-group" style="margin-bottom:14px;">
+                    <label class="form-label" for="deckSettingsCourseSelect">Assigned Course</label>
+                    <select id="deckSettingsCourseSelect" class="select">
+                        <option value="">No Course (General)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" type="button" onclick="document.getElementById('deckSettingsModal').classList.remove('show')">Cancel</button>
+                <button id="saveDeckSettingsBtn" class="btn btn-primary" type="button">Save Changes</button>
             </div>
         </div>
     </div>

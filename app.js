@@ -362,10 +362,7 @@
                     ctx.font = '600 11px Plus Jakarta Sans, sans-serif';
                     ctx.fillStyle = isDark ? 'rgba(232, 152, 60, 0.95)' : 'rgba(194, 107, 18, 0.95)';
                     ctx.textAlign = 'center';
-                    ctx.fillText(`✦ ${c.name} Constellation`, cx, cy + 90 * scale);
-                    ctx.font = '400 9px Plus Jakarta Sans, sans-serif';
-                    ctx.fillStyle = isDark ? 'rgba(161, 161, 170, 0.85)' : 'rgba(113, 113, 122, 0.85)';
-                    ctx.fillText(c.latin, cx, cy + 104 * scale);
+                    ctx.fillText(`✦ ${c.name}`, cx, cy + 90 * scale);
                     ctx.restore();
                 }
             });
@@ -444,6 +441,11 @@
                 "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
             ));
             return matches ? decodeURIComponent(matches[1]) : undefined;
+        },
+
+        setCookie(name, value, days = 365) {
+            const expires = new Date(Date.now() + days * 86400000).toUTCString();
+            document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
         },
 
         async init() {
@@ -539,7 +541,8 @@
             if (nameEl) nameEl.textContent = p.username || 'Scholar';
             if (avatarBox) {
                 if (p.customAvatarUrl) {
-                    avatarBox.innerHTML = `<img src="${p.customAvatarUrl}" alt="Avatar">`;
+                    const fallbackSvg = this.getAvatarSVG(p.pfp || 'star');
+                    avatarBox.innerHTML = `<img src="${p.customAvatarUrl}" alt="Avatar" onerror="this.style.display='none'; if(this.parentElement) this.parentElement.innerHTML=\`${fallbackSvg.replace(/`/g, '\\`').replace(/"/g, '&quot;')}\`;">`;
                 } else {
                     avatarBox.innerHTML = this.getAvatarSVG(p.pfp || 'star');
                 }
@@ -672,6 +675,25 @@
                 opt.classList.toggle('active', opt.dataset.preset === this.selectedPreset);
             });
 
+            const preview = document.getElementById('pfpCustomPreview');
+            const fileInput = document.getElementById('pfpFileInput');
+            const fileNameLabel = document.getElementById('pfpFileNameLabel');
+            if (fileInput) fileInput.value = '';
+            if (fileNameLabel) fileNameLabel.textContent = this.uploadedDataUrl ? 'Custom photo selected' : 'No file chosen';
+            if (preview) {
+                if (this.uploadedDataUrl) {
+                    preview.src = this.uploadedDataUrl;
+                    preview.style.display = 'block';
+                    preview.onerror = () => {
+                        console.warn('Avatar preview load failed, falling back');
+                        preview.style.display = 'none';
+                        this.uploadedDataUrl = null;
+                    };
+                } else {
+                    preview.style.display = 'none';
+                }
+            }
+
             modal.classList.add('show');
         },
 
@@ -680,17 +702,69 @@
             if (modal) modal.classList.remove('show');
         },
 
-        handleImageUpload(file) {
+        handleImageUpload(file, retryCount = 0) {
             if (!file) return;
+            const fileNameLabel = document.getElementById('pfpFileNameLabel');
+            if (fileNameLabel) fileNameLabel.textContent = file.name || 'Custom photo';
             const reader = new FileReader();
             reader.onload = (e) => {
-                this.uploadedDataUrl = e.target.result;
-                const preview = document.getElementById('pfpCustomPreview');
-                if (preview) {
-                    preview.src = this.uploadedDataUrl;
-                    preview.style.display = 'block';
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const maxDim = 200;
+                        let w = img.width;
+                        let h = img.height;
+
+                        if (w > maxDim || h > maxDim) {
+                            if (w > h) {
+                                h = Math.round((h * maxDim) / w);
+                                w = maxDim;
+                            } else {
+                                w = Math.round((w * maxDim) / h);
+                                h = maxDim;
+                            }
+                        }
+
+                        canvas.width = w;
+                        canvas.height = h;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, w, h);
+
+                        this.uploadedDataUrl = canvas.toDataURL('image/png');
+                        const preview = document.getElementById('pfpCustomPreview');
+                        if (preview) {
+                            preview.src = this.uploadedDataUrl;
+                            preview.style.display = 'block';
+                            preview.onerror = () => { preview.style.display = 'none'; };
+                        }
+                        Toast.show("Custom avatar loaded");
+                    } catch (err) {
+                        console.warn("Canvas export fallback:", err);
+                        this.uploadedDataUrl = e.target.result;
+                        const preview = document.getElementById('pfpCustomPreview');
+                        if (preview) {
+                            preview.src = this.uploadedDataUrl;
+                            preview.style.display = 'block';
+                        }
+                        Toast.show("Custom avatar loaded");
+                    }
+                };
+                img.onerror = () => {
+                    if (retryCount < 2) {
+                        setTimeout(() => this.handleImageUpload(file, retryCount + 1), 250);
+                    } else {
+                        Toast.show("Could not process image format. Please try another photo.");
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.onerror = () => {
+                if (retryCount < 2) {
+                    setTimeout(() => this.handleImageUpload(file, retryCount + 1), 250);
+                } else {
+                    Toast.show("Failed to read image file.");
                 }
-                Toast.show("Custom avatar loaded");
             };
             reader.readAsDataURL(file);
         },
@@ -807,7 +881,7 @@
             if (streakCountEl) {
                 const st = Store.data.profile.streak || 1;
                 streakCountEl.textContent = `${st} ${st === 1 ? 'Day' : 'Days'}`;
-                streakCountEl.classList.add('highlight-orange');
+                streakCountEl.classList.remove('highlight-orange');
             }
 
             const pomoMins = Store.data.pomodoro?.totalFocusMinutes || 0;
@@ -890,11 +964,18 @@
             const taskPreview = document.getElementById('dashTodayTasksList');
             if (taskPreview) {
                 taskPreview.innerHTML = todayTasks.length === 0
-                    ? `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No pending tasks for today.</div>`
-                    : todayTasks.slice(0, 3).map(t => `
-                        <div style="display:flex; align-items:center; gap:8px; padding:6px 0; font-size:0.85rem; border-bottom:1px solid var(--border-subtle);">
+                    ? `<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:18px 8px; color:var(--text-muted);">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="margin-bottom:8px; opacity:0.5;">
+                            <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                        <div style="font-weight:600; font-size:0.88rem; color:var(--text-primary); margin-bottom:2px;">No pending tasks</div>
+                        <div style="font-size:0.75rem; margin-bottom:12px;">All caught up for today</div>
+                        <button class="btn btn-secondary btn-sm" onclick="window.StudyVerse.Router.navigate('tasks')">+ Add Task</button>
+                    </div>`
+                    : todayTasks.slice(0, 4).map(t => `
+                        <div style="display:flex; align-items:center; gap:8px; padding:8px 0; font-size:0.85rem; border-bottom:1px solid var(--border-subtle);">
                             <div class="task-check" onclick="window.StudyVerse.Tasks.toggleTask('${t.id}')"></div>
-                            <span style="font-weight:500;">${escapeHtml(t.title)}</span>
+                            <span style="font-weight:500; flex:1;">${escapeHtml(t.title)}</span>
                         </div>
                     `).join('');
             }
@@ -903,9 +984,16 @@
             const eventPreview = document.getElementById('dashEventsList');
             if (eventPreview) {
                 eventPreview.innerHTML = events.length === 0
-                    ? `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No upcoming events scheduled.</div>`
-                    : events.slice(0, 3).map(e => `
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:0.85rem; border-bottom:1px solid var(--border-subtle);">
+                    ? `<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:18px 8px; color:var(--text-muted);">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="margin-bottom:8px; opacity:0.5;">
+                            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        <div style="font-weight:600; font-size:0.88rem; color:var(--text-primary); margin-bottom:2px;">Schedule is clear</div>
+                        <div style="font-size:0.75rem; margin-bottom:12px;">No upcoming events</div>
+                        <button class="btn btn-secondary btn-sm" onclick="window.StudyVerse.Router.navigate('calendar')">+ Add Event</button>
+                    </div>`
+                    : events.slice(0, 4).map(e => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:0.85rem; border-bottom:1px solid var(--border-subtle);">
                             <span style="font-weight:600;">${escapeHtml(e.title)}</span>
                             <span style="color:var(--text-muted); font-size:0.75rem; font-family:var(--font-mono);">${e.time || e.date}</span>
                         </div>
@@ -915,9 +1003,16 @@
             const deckPreview = document.getElementById('dashDecksList');
             if (deckPreview) {
                 deckPreview.innerHTML = decks.length === 0
-                    ? `<div style="font-size:0.82rem; color:var(--text-muted); padding:8px 0;">No decks created yet.</div>`
-                    : decks.slice(0, 3).map(d => `
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:0.85rem; border-bottom:1px solid var(--border-subtle);">
+                    ? `<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:18px 8px; color:var(--text-muted);">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="margin-bottom:8px; opacity:0.5;">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+                        </svg>
+                        <div style="font-weight:600; font-size:0.88rem; color:var(--text-primary); margin-bottom:2px;">No flashcard decks</div>
+                        <div style="font-size:0.75rem; margin-bottom:12px;">Create active recall cards</div>
+                        <button class="btn btn-secondary btn-sm" onclick="window.StudyVerse.Router.navigate('flashcards')">+ Create Deck</button>
+                    </div>`
+                    : decks.slice(0, 4).map(d => `
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:0.85rem; border-bottom:1px solid var(--border-subtle);">
                             <span style="font-weight:600;">${escapeHtml(d.title)}</span>
                             <button class="btn btn-secondary btn-sm" onclick="window.StudyVerse.Flashcards.startPracticeById('${d.id}')">Practice</button>
                         </div>
@@ -1143,6 +1238,11 @@
         consecutiveCorrectStreak: 0,
         draggedDeckId: null,
 
+        searchQuery: '',
+        selectedDeckIds: new Set(),
+        selectionMode: false,
+        deckToDeleteId: null,
+
         init() {
             this.bindEvents();
             this.renderDecksList();
@@ -1150,6 +1250,11 @@
         },
 
         bindEvents() {
+            const saveDeckSettingsBtn = document.getElementById('saveDeckSettingsBtn');
+            if (saveDeckSettingsBtn) {
+                saveDeckSettingsBtn.addEventListener('click', () => this.saveDeckSettings());
+            }
+
             document.querySelectorAll('#flashcardsSubnav .subnav-tab').forEach(tab => {
                 tab.addEventListener('click', () => {
                     this.switchTab(tab.dataset.tab);
@@ -1193,7 +1298,12 @@
             if (saveManualBottomBtn) saveManualBottomBtn.addEventListener('click', () => this.saveManualDeck());
 
             const ankiCard = document.getElementById('ankiCardContainer');
-            if (ankiCard) ankiCard.addEventListener('click', () => this.flipCard());
+            if (ankiCard) {
+                ankiCard.addEventListener('click', (e) => {
+                    if (e.target.closest('button, input, textarea, a, .fc-help-section, .fc-tier2-box, .fc-tier3-wrap')) return;
+                    this.flipCard();
+                });
+            }
 
             window.addEventListener('keydown', (e) => {
                 if (this.activeTab !== 'practice') return;
@@ -1219,6 +1329,44 @@
 
             const returnBtn = document.getElementById('ankiReturnDecksBtn');
             if (returnBtn) returnBtn.addEventListener('click', () => this.switchTab('decks'));
+
+            const confirmDelBtn = document.getElementById('confirmDeleteDeckBtn');
+            if (confirmDelBtn) {
+                confirmDelBtn.addEventListener('click', () => this.confirmDeleteDeck());
+            }
+
+            const searchInput = document.getElementById('fcDeckSearchInput');
+            const clearSearchBtn = document.getElementById('fcDeckSearchClearBtn');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    this.searchQuery = (e.target.value || '').trim().toLowerCase();
+                    if (clearSearchBtn) clearSearchBtn.style.display = this.searchQuery ? 'block' : 'none';
+                    this.renderDecksList();
+                });
+            }
+            if (clearSearchBtn && searchInput) {
+                clearSearchBtn.addEventListener('click', () => {
+                    searchInput.value = '';
+                    this.searchQuery = '';
+                    clearSearchBtn.style.display = 'none';
+                    this.renderDecksList();
+                });
+            }
+
+            const selectAllBtn = document.getElementById('fcSelectAllDecksBtn');
+            if (selectAllBtn) {
+                selectAllBtn.addEventListener('click', () => this.toggleSelectAllDecks());
+            }
+
+            const bulkDelBtn = document.getElementById('fcBulkDeleteBtn');
+            if (bulkDelBtn) {
+                bulkDelBtn.addEventListener('click', () => this.promptBulkDelete());
+            }
+
+            const confirmBulkDelBtn = document.getElementById('confirmBulkDeleteBtn');
+            if (confirmBulkDelBtn) {
+                confirmBulkDelBtn.addEventListener('click', () => this.confirmBulkDelete());
+            }
         },
 
         switchTab(tabId) {
@@ -1480,22 +1628,71 @@
             if (!listEl) return;
 
             this.updateCourseDropdowns();
-            const decks = Store.data.decks || [];
+            const allDecks = Store.data.decks || [];
             const courses = Store.data.courses || [];
 
-            let html = decks.map(deck => {
+            // Filter decks by search query
+            const query = (this.searchQuery || '').trim().toLowerCase();
+            const filteredDecks = query
+                ? allDecks.filter(deck => {
+                    const titleMatch = (deck.title || '').toLowerCase().includes(query);
+                    const course = courses.find(c => c.id === deck.courseId);
+                    const courseMatch = course && (course.code || '').toLowerCase().includes(query);
+                    const cardMatch = (deck.cards || []).some(c => (c.concept || '').toLowerCase().includes(query));
+                    return titleMatch || courseMatch || cardMatch;
+                })
+                : allDecks;
+
+            // Update Count Bar
+            const countBar = document.getElementById('fcDecksCountBar');
+            if (countBar) {
+                if (query) {
+                    countBar.innerHTML = `<span>Showing <strong>${filteredDecks.length}</strong> of ${allDecks.length} decks</span>` +
+                        `<button class="btn btn-subtle btn-sm" onclick="document.getElementById('fcDeckSearchClearBtn').click()" style="font-size:0.75rem;">Clear Filter</button>`;
+                } else {
+                    countBar.innerHTML = `<span>Total Decks: <strong>${allDecks.length}</strong></span>`;
+                }
+            }
+
+            this.updateBulkActionsUI(filteredDecks);
+
+            if (filteredDecks.length === 0) {
+                if (query) {
+                    listEl.innerHTML = `
+                        <div class="card" style="grid-column: 1 / -1; padding:32px; text-align:center;">
+                            <div style="font-size:1.6rem; margin-bottom:8px;">🔍</div>
+                            <div style="font-weight:600; font-size:0.95rem; margin-bottom:4px;">No matching decks found</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:14px;">No decks matching "${escapeHtml(query)}"</div>
+                            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('fcDeckSearchClearBtn').click()">Clear Search Filter</button>
+                        </div>
+                    `;
+                    return;
+                }
+            }
+
+            let html = filteredDecks.map(deck => {
                 const course = courses.find(c => c.id === deck.courseId);
                 const total = deck.cards?.length || 0;
                 const mastered = (deck.cards || []).filter(c => (c.repetitions || 0) >= 2).length;
                 const pct = total > 0 ? Math.round((mastered / total) * 100) : 0;
+                const isSelected = this.selectedDeckIds.has(deck.id);
+                const showCheckbox = this.selectionMode || this.selectedDeckIds.size > 0;
 
                 return `
-                    <div class="deck-card" draggable="true" data-deck-id="${deck.id}"
+                    <div class="deck-card ${isSelected ? 'is-selected' : ''}" draggable="true" data-deck-id="${deck.id}"
                          ondragstart="window.StudyVerse.Flashcards.handleDeckDragStart(event, '${deck.id}')"
                          ondragend="window.StudyVerse.Flashcards.handleDeckDragEnd(event)">
                         <div>
                             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                                ${course ? `<div class="deck-course-tag" style="color:${course.color === 'blue' ? '#3b82f6' : course.color === 'emerald' ? '#10b981' : course.color === 'purple' ? '#8b5cf6' : course.color === 'rose' ? '#f43f5e' : 'var(--sv-orange)'};">${escapeHtml(course.code)}</div>` : `<span style="font-size:0.7rem; color:var(--text-dim);">General</span>`}
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    ${showCheckbox ? `
+                                        <input type="checkbox" class="deck-select-checkbox" data-deck-id="${deck.id}" 
+                                               ${isSelected ? 'checked' : ''} 
+                                               onclick="event.stopPropagation(); window.StudyVerse.Flashcards.toggleDeckSelection('${deck.id}', this.checked)"
+                                               title="Select deck for bulk actions">
+                                    ` : ''}
+                                    ${course ? `<div class="deck-course-tag" style="color:${course.color === 'blue' ? '#3b82f6' : course.color === 'emerald' ? '#10b981' : course.color === 'purple' ? '#8b5cf6' : course.color === 'rose' ? '#f43f5e' : 'var(--sv-orange)'};">${escapeHtml(course.code)}</div>` : `<span style="font-size:0.7rem; color:var(--text-dim);">General</span>`}
+                                </div>
                                 <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--text-muted);">${total} cards</span>
                             </div>
                             <h3 class="deck-title">${escapeHtml(deck.title)}</h3>
@@ -1509,26 +1706,170 @@
                                 <button class="btn btn-primary btn-sm" onclick="window.StudyVerse.Flashcards.startPracticeById('${deck.id}')" style="flex:1;">
                                     Practice
                                 </button>
-                                <select class="select" style="width:auto; padding:2px 6px; font-size:0.72rem;" onchange="window.StudyVerse.Flashcards.assignDeckToCourse('${deck.id}', this.value)" title="Assign course">
-                                    <option value="" ${!deck.courseId ? 'selected' : ''}>No Course</option>
-                                    ${courses.map(c => `<option value="${c.id}" ${deck.courseId === c.id ? 'selected' : ''}>${escapeHtml(c.code)}</option>`).join('')}
-                                </select>
-                                <button class="btn btn-subtle btn-sm" onclick="window.StudyVerse.Flashcards.deleteDeck('${deck.id}')" title="Delete deck">&times;</button>
+                                <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); window.StudyVerse.Flashcards.openDeckSettings('${deck.id}')" title="Edit deck and assign course" style="padding:4px 8px; display:inline-flex; align-items:center; gap:4px; font-size:0.78rem;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                    </svg>
+                                    <span>Edit</span>
+                                </button>
+                                <button class="btn btn-subtle btn-sm" onclick="event.stopPropagation(); window.StudyVerse.Flashcards.promptDeleteDeck('${deck.id}')" title="Delete deck permanently" style="color:var(--text-muted); font-size:1.1rem; line-height:1; padding:4px 8px; border-radius:6px;">&times;</button>
                             </div>
                         </div>
                     </div>
                 `;
             }).join('');
 
-            html += `
-                <div class="ghost-deck-card" onclick="window.StudyVerse.Flashcards.switchTab('manual')">
-                    <div class="ghost-deck-icon">+</div>
-                    <div style="font-weight:600; font-size:0.88rem;">Create Deck Manually</div>
-                    <div style="font-size:0.75rem; color:var(--text-muted);">Write your own prompt & answer cards</div>
-                </div>
-            `;
+            if (!query) {
+                html += `
+                    <div class="ghost-deck-card" onclick="window.StudyVerse.Flashcards.switchTab('manual')">
+                        <div class="ghost-deck-icon">+</div>
+                        <div style="font-weight:600; font-size:0.88rem;">Create Deck Manually</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Write your own prompt & answer cards</div>
+                    </div>
+                `;
+            }
 
             listEl.innerHTML = html;
+        },
+
+        openDeckSettings(deckId) {
+            const deck = (Store.data.decks || []).find(d => d.id === deckId);
+            if (!deck) return;
+
+            const modal = document.getElementById('deckSettingsModal');
+            const idInput = document.getElementById('deckSettingsDeckId');
+            const titleInput = document.getElementById('deckSettingsTitleInput');
+            const courseSelect = document.getElementById('deckSettingsCourseSelect');
+
+            if (idInput) idInput.value = deck.id;
+            if (titleInput) titleInput.value = deck.title || '';
+            if (courseSelect) {
+                const courses = Store.data.courses || [];
+                courseSelect.innerHTML = `<option value="">No Course (General)</option>` +
+                    courses.map(c => `<option value="${c.id}" ${deck.courseId === c.id ? 'selected' : ''}>${escapeHtml(c.code)} - ${escapeHtml(c.title)}</option>`).join('');
+                courseSelect.value = deck.courseId || '';
+            }
+
+            if (modal) modal.classList.add('show');
+        },
+
+        saveDeckSettings() {
+            const id = document.getElementById('deckSettingsDeckId')?.value;
+            const title = (document.getElementById('deckSettingsTitleInput')?.value || '').trim();
+            const courseId = document.getElementById('deckSettingsCourseSelect')?.value || null;
+
+            if (!id || !title) return;
+
+            const deck = (Store.data.decks || []).find(d => d.id === id);
+            if (deck) {
+                deck.title = title;
+                deck.courseId = courseId;
+                Store.save();
+                this.renderDecksList();
+                Courses.render();
+                Toast.show(`Updated "${title}"`);
+            }
+
+            const modal = document.getElementById('deckSettingsModal');
+            if (modal) modal.classList.remove('show');
+        },
+
+        toggleDeckSelection(deckId, isChecked) {
+            if (isChecked) {
+                this.selectedDeckIds.add(deckId);
+                this.selectionMode = true;
+            } else {
+                this.selectedDeckIds.delete(deckId);
+                if (this.selectedDeckIds.size === 0) {
+                    this.selectionMode = false;
+                }
+            }
+            this.renderDecksList();
+        },
+
+        toggleSelectAllDecks() {
+            const allDecks = Store.data.decks || [];
+            const courses = Store.data.courses || [];
+            const query = (this.searchQuery || '').trim().toLowerCase();
+            const filteredDecks = query
+                ? allDecks.filter(deck => {
+                    const titleMatch = (deck.title || '').toLowerCase().includes(query);
+                    const course = courses.find(c => c.id === deck.courseId);
+                    const courseMatch = course && (course.code || '').toLowerCase().includes(query);
+                    return titleMatch || courseMatch;
+                })
+                : allDecks;
+
+            const allFilteredSelected = filteredDecks.length > 0 && filteredDecks.every(d => this.selectedDeckIds.has(d.id));
+
+            if (allFilteredSelected) {
+                filteredDecks.forEach(d => this.selectedDeckIds.delete(d.id));
+                this.selectionMode = false;
+            } else {
+                filteredDecks.forEach(d => this.selectedDeckIds.add(d.id));
+                this.selectionMode = true;
+            }
+
+            this.renderDecksList();
+        },
+
+        updateBulkActionsUI(filteredDecks) {
+            const count = this.selectedDeckIds.size;
+            const bulkBtn = document.getElementById('fcBulkDeleteBtn');
+            const countSpan = document.getElementById('fcSelectedCount');
+            const selectAllBtn = document.getElementById('fcSelectAllDecksBtn');
+
+            if (countSpan) countSpan.textContent = count;
+            if (bulkBtn) {
+                bulkBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+                bulkBtn.disabled = count === 0;
+            }
+
+            if (selectAllBtn) {
+                const totalMatching = (filteredDecks || []).length;
+                const allSelected = totalMatching > 0 && (filteredDecks || []).every(d => this.selectedDeckIds.has(d.id));
+                selectAllBtn.textContent = allSelected ? 'Deselect All' : 'Select All';
+                selectAllBtn.style.display = totalMatching > 0 ? 'inline-flex' : 'none';
+            }
+        },
+
+        promptBulkDelete() {
+            const selectedIds = Array.from(this.selectedDeckIds);
+            if (selectedIds.length === 0) return;
+
+            const allDecks = Store.data.decks || [];
+            const targetDecks = allDecks.filter(d => this.selectedDeckIds.has(d.id));
+
+            const modal = document.getElementById('bulkDeleteDecksModal');
+            const countLabel = document.getElementById('bulkDeleteCountLabel');
+            const summaryList = document.getElementById('bulkDeleteDecksSummaryList');
+
+            if (countLabel) countLabel.textContent = `${targetDecks.length} deck${targetDecks.length === 1 ? '' : 's'}`;
+            if (summaryList) {
+                summaryList.innerHTML = targetDecks.map(d => `<div style="padding:3px 0; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between;"><span>• ${escapeHtml(d.title)}</span><span style="color:var(--text-muted); font-size:0.75rem;">${d.cards?.length || 0} cards</span></div>`).join('');
+            }
+
+            if (modal) {
+                modal.classList.add('show');
+            } else {
+                this.confirmBulkDelete();
+            }
+        },
+
+        confirmBulkDelete() {
+            const count = this.selectedDeckIds.size;
+            if (count === 0) return;
+
+            Store.data.decks = (Store.data.decks || []).filter(d => !this.selectedDeckIds.has(d.id));
+            this.selectedDeckIds.clear();
+            Store.save();
+
+            const modal = document.getElementById('bulkDeleteDecksModal');
+            if (modal) modal.classList.remove('show');
+
+            this.renderDecksList();
+            Courses.render();
+            Toast.show(`Deleted ${count} deck${count === 1 ? '' : 's'} permanently.`);
         },
 
         assignDeckToCourse(deckId, courseId) {
@@ -1674,13 +2015,42 @@
             document.getElementById('ankiResultsScreen').style.display = 'block';
         },
 
+        promptDeleteDeck(deckId) {
+            const deck = (Store.data.decks || []).find(d => d.id === deckId);
+            if (!deck) return;
+
+            this.deckToDeleteId = deckId;
+            const modal = document.getElementById('deleteDeckConfirmModal');
+            const titleEl = document.getElementById('deleteDeckTargetTitle');
+            if (titleEl) titleEl.textContent = `"${deck.title}"`;
+
+            if (modal) {
+                modal.classList.add('show');
+            } else {
+                this.deleteDeck(deckId);
+            }
+        },
+
+        confirmDeleteDeck() {
+            if (!this.deckToDeleteId) return;
+            const deckId = this.deckToDeleteId;
+            this.deckToDeleteId = null;
+
+            const modal = document.getElementById('deleteDeckConfirmModal');
+            if (modal) modal.classList.remove('show');
+
+            this.deleteDeck(deckId);
+        },
+
         deleteDeck(deckId) {
-            if (!confirm('Delete this flashcard deck?')) return;
+            const deck = (Store.data.decks || []).find(d => d.id === deckId);
+            const deckTitle = deck?.title || 'Deck';
             Store.data.decks = (Store.data.decks || []).filter(d => d.id !== deckId);
+            this.selectedDeckIds.delete(deckId);
             Store.save();
             this.renderDecksList();
             Courses.render();
-            Toast.show('Deck deleted.');
+            Toast.show(`"${deckTitle}" deleted permanently.`);
         }
     };
 
@@ -1869,8 +2239,15 @@
 
             if (tasks.length === 0) {
                 listEl.innerHTML = `
-                    <div class="card" style="text-align:center; padding:30px; color:var(--text-muted); font-size:0.86rem;">
-                        No study tasks yet. Type a task above and press Enter.
+                    <div class="card" style="text-align:center; padding:44px 20px; max-width:440px; margin:24px auto;">
+                        <div style="width:48px; height:48px; border-radius:50%; background:var(--sv-orange-light); color:var(--sv-orange); display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                            </svg>
+                        </div>
+                        <div style="font-size:1.05rem; font-weight:700; color:var(--text-primary); margin-bottom:4px;">Nothing on your list</div>
+                        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:18px; line-height:1.5;">All caught up! Add a new task above or set your study goals for today.</p>
+                        <button class="btn btn-primary btn-sm" onclick="document.getElementById('taskInputTitle').focus()">+ Add Task</button>
                     </div>
                 `;
                 return;
@@ -2096,20 +2473,79 @@
                         </div>
                     `;
                 }
-                if (editorPane) editorPane.style.display = 'none';
+                if (editorPane) {
+                    editorPane.style.display = 'flex';
+                    editorPane.innerHTML = `
+                        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px 20px; color:var(--text-muted);">
+                            <div style="width:52px; height:52px; border-radius:50%; background:var(--sv-orange-light); color:var(--sv-orange); display:flex; align-items:center; justify-content:center; margin-bottom:14px;">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+                                </svg>
+                            </div>
+                            <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-bottom:6px;">Select a note or create one</div>
+                            <p style="font-size:0.83rem; color:var(--text-muted); margin-bottom:18px; max-width:340px; line-height:1.5;">Organize lecture summaries, textbook insights, and class study notes.</p>
+                            <button class="btn btn-primary btn-sm" onclick="window.StudyVerse.Notes.createNote()">+ Create Note</button>
+                        </div>
+                    `;
+                }
                 return;
             }
 
-            if (editorPane) editorPane.style.display = 'flex';
+            if (editorPane) {
+                editorPane.style.display = 'flex';
+                // Check if current HTML inside editorPane is the empty state; if so, restore normal editor HTML structure
+                if (!document.getElementById('noteEditorTitle')) {
+                    editorPane.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; width:100%;">
+                            <button id="noteMobileBackBtn" class="btn btn-secondary btn-sm mobile-only-back-btn" type="button" onclick="document.querySelector('.notes-container').classList.remove('show-editor')" style="display:none; align-items:center; gap:4px; padding:6px 10px;">
+                                &larr; Pages
+                            </button>
+                            <input type="text" id="noteEditorTitle" class="note-editor-title" placeholder="Untitled" style="flex:1; min-width:120px;">
+                            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                                <select id="noteCourseSelect" class="select" style="width:auto; font-size:0.78rem; padding:3px 8px;"></select>
+                                <button id="noteMakeFlashcardsBtn" class="btn btn-accent btn-sm" type="button" title="Convert note into active-recall flashcards">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                    </svg>
+                                    <span>Make Cards</span>
+                                </button>
+                                <button id="noteDeleteBtn" class="btn btn-subtle btn-sm" type="button">&times;</button>
+                            </div>
+                        </div>
+                        <textarea id="noteEditorBody" class="note-editor-body" placeholder="Write thoughts, summaries, and lecture notes..."></textarea>
+                    `;
+                    // Re-bind editor event listeners
+                    const titleInput = document.getElementById('noteEditorTitle');
+                    const bodyInput = document.getElementById('noteEditorBody');
+                    const cSelect = document.getElementById('noteCourseSelect');
+                    const sendToAiBtn = document.getElementById('noteMakeFlashcardsBtn');
+                    const delBtn = document.getElementById('noteDeleteBtn');
+                    if (titleInput) titleInput.addEventListener('input', () => this.saveCurrentNote());
+                    if (bodyInput) bodyInput.addEventListener('input', () => this.saveCurrentNote());
+                    if (cSelect) {
+                        const courses = Store.data.courses || [];
+                        cSelect.innerHTML = `<option value="">No Course (General)</option>` +
+                            courses.map(c => `<option value="${c.id}">${escapeHtml(c.code)} - ${escapeHtml(c.title)}</option>`).join('');
+                        cSelect.addEventListener('change', () => this.saveCurrentNote());
+                    }
+                    if (sendToAiBtn) sendToAiBtn.addEventListener('click', () => this.makeFlashcards());
+                    if (delBtn) delBtn.addEventListener('click', () => this.deleteCurrentNote());
+                }
+            }
+
             if (!this.selectedNoteId || !notes.find(n => n.id === this.selectedNoteId)) {
                 this.selectedNoteId = notes[0].id;
             }
 
             const current = notes.find(n => n.id === this.selectedNoteId);
+            const titleEl = document.getElementById('noteEditorTitle');
+            const bodyEl = document.getElementById('noteEditorBody');
+            const cSel = document.getElementById('noteCourseSelect');
+
             if (current) {
-                document.getElementById('noteEditorTitle').value = current.title;
-                document.getElementById('noteEditorBody').value = current.content;
-                if (courseSelect) courseSelect.value = current.courseId || '';
+                if (titleEl) titleEl.value = current.title;
+                if (bodyEl) bodyEl.value = current.content;
+                if (cSel) cSel.value = current.courseId || '';
             }
 
             if (listEl) {
@@ -2608,9 +3044,14 @@
 
             if (courses.length === 0) {
                 grid.innerHTML = `
-                    <div class="card" style="grid-column: 1 / -1; text-align:center; padding:36px;">
-                        <h4 style="font-size:1rem; font-weight:700;">No Courses Added</h4>
-                        <p style="font-size:0.82rem; color:var(--text-muted); margin:6px 0 18px;">Add your enrolled classes to link decks and notes.</p>
+                    <div class="card" style="grid-column: 1 / -1; text-align:center; padding:36px 20px; max-width:420px; margin:20px auto;">
+                        <div style="width:48px; height:48px; border-radius:50%; background:var(--sv-orange-light); color:var(--sv-orange); display:flex; align-items:center; justify-content:center; margin:0 auto 12px;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                            </svg>
+                        </div>
+                        <h4 style="font-size:1.05rem; font-weight:700; color:var(--text-primary);">No Courses Added</h4>
+                        <p style="font-size:0.82rem; color:var(--text-muted); margin:6px 0 18px; line-height:1.5;">Add your enrolled classes to link decks and notes.</p>
                         <button class="btn btn-primary btn-sm" onclick="window.StudyVerse.Courses.openAddCourseModal()">+ Add Course</button>
                     </div>
                 `;
@@ -2867,9 +3308,24 @@
         },
 
         async disconnect() {
-            if (!confirm('Disconnect Google Classroom from StudyVerse?')) return;
+            if (!confirm('Disconnect Google Classroom and reset workspace to a guest profile?')) return;
             try {
-                await fetch('/api/classroom/disconnect', { method: 'POST' });
+                const res = await fetch('/api/classroom/disconnect', {
+                    method: 'POST',
+                    headers: {
+                        ...(Store.uid ? { 'x-studyverse-uid': Store.uid } : {})
+                    }
+                });
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && json.uid && json.data) {
+                        Store.uid = json.uid;
+                        localStorage.setItem('studyverse_uid_local', json.uid);
+                        document.cookie = `studyverse_uid=${json.uid}; path=/; max-age=31536000; SameSite=Lax`;
+                        Store.data = json.data;
+                        Store.save();
+                    }
+                }
             } catch (e) {}
 
             if (typeof firebase !== 'undefined' && firebase.apps.length) {
@@ -2877,21 +3333,21 @@
             }
 
             this.cachedAccessToken = null;
-            Store.data.classroom = {
-                connected: false,
-                user: null,
-                lastSynced: null,
-                classes: [],
-                upcoming: [],
-                recentPosts: []
-            };
             this.selectedClassId = null;
-            Store.save();
+
+            // Rerender all views cleanly with fresh guest state
+            Dashboard.render();
+            Flashcards.renderDecksList();
+            Tasks.render();
+            Notes.render();
+            Calendar.render();
+            Courses.render();
+            Classroom.render();
+            SettingsModal.render();
+            Store.updateProfileUI();
 
             this.updateNavVisibility();
-            this.render();
-            SettingsModal.render();
-            Toast.show('Google Classroom disconnected.');
+            Toast.show('Disconnected Google Classroom & reset to guest profile.');
         },
 
         async sync(silent = false) {
@@ -3695,6 +4151,183 @@
             .replace(/'/g, '&#039;');
     }
 
+    const UpdatesModule = {
+        data: null,
+        currentVersion: '1.3.0',
+        historyVisible: false,
+
+        async init() {
+            try {
+                const res = await fetch('/api/updates');
+                if (res.ok) {
+                    const json = await res.json();
+                    if (json.success && json.data) {
+                        this.data = json.data;
+                        this.currentVersion = json.data.currentVersion || this.currentVersion;
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to fetch updates:', e);
+            }
+
+            this.setupUI();
+            this.checkAndPromptUpdate();
+        },
+
+        checkAndPromptUpdate() {
+            const COOKIE_VER = 'sv_last_seen_version';
+            const COOKIE_VISITOR = 'sv_visitor_initialized';
+
+            const lastSeen = Store.getCookie(COOKIE_VER) || localStorage.getItem(COOKIE_VER);
+            const visitorInit = Store.getCookie(COOKIE_VISITOR) || localStorage.getItem(COOKIE_VISITOR);
+
+            if (!visitorInit && !lastSeen) {
+                Store.setCookie(COOKIE_VISITOR, 'true', 365);
+                Store.setCookie(COOKIE_VER, this.currentVersion, 365);
+                localStorage.setItem(COOKIE_VISITOR, 'true');
+                localStorage.setItem(COOKIE_VER, this.currentVersion);
+                return;
+            }
+
+            if (lastSeen !== this.currentVersion) {
+                const badge = document.getElementById('dropWhatsNewBadge');
+                if (badge) badge.style.display = 'inline-block';
+
+                this.showModal();
+            }
+        },
+
+        setupUI() {
+            const btnDropWhatsNew = document.getElementById('dropWhatsNewBtn');
+            if (btnDropWhatsNew) {
+                btnDropWhatsNew.addEventListener('click', () => {
+                    const drop = document.getElementById('profileDropdown');
+                    if (drop) drop.classList.remove('show');
+                    this.showModal();
+                });
+            }
+
+            const btnCloseX = document.getElementById('whatsNewCloseX');
+            if (btnCloseX) {
+                const handleClose = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.dismissModal();
+                };
+                btnCloseX.addEventListener('click', handleClose);
+                btnCloseX.addEventListener('touchend', handleClose);
+            }
+
+            const btnToggleHistory = document.getElementById('whatsNewToggleHistoryBtn');
+            if (btnToggleHistory) {
+                btnToggleHistory.addEventListener('click', () => this.toggleHistory());
+            }
+
+            const modal = document.getElementById('whatsNewModal');
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) this.dismissModal();
+                });
+            }
+        },
+
+        renderChanges(latest) {
+            if (!latest) return;
+            const versionBadge = document.getElementById('whatsNewVersionBadge');
+            if (versionBadge) versionBadge.textContent = `v${latest.version || this.currentVersion}`;
+
+            const releaseDate = document.getElementById('whatsNewReleaseDate');
+            if (releaseDate) releaseDate.textContent = `Released ${latest.displayDate || latest.date || 'Recently'}`;
+
+            const summary = document.getElementById('whatsNewSummary');
+            if (summary) summary.textContent = latest.summary || 'Here is what changed in the latest StudyVerse update!';
+
+            const listContainer = document.getElementById('whatsNewChangesList');
+            if (listContainer) {
+                const changes = latest.changes || [];
+                listContainer.innerHTML = changes.map(ch => {
+                    const tagClass = ch.category === 'feature' ? 'tag-new' : ch.category === 'fix' ? 'tag-fix' : 'tag-improved';
+                    const tagLabel = ch.tag || (ch.category === 'feature' ? 'NEW' : ch.category === 'fix' ? 'FIX' : 'IMPROVED');
+                    return `
+                        <div class="whats-new-item">
+                            <span class="whats-new-tag ${tagClass}">${escapeHtml(tagLabel)}</span>
+                            <div class="whats-new-item-content">
+                                <div class="whats-new-item-title">${escapeHtml(ch.title || '')}</div>
+                                <div class="whats-new-item-desc">${escapeHtml(ch.description || '')}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const historyContainer = document.getElementById('whatsNewHistoryContainer');
+            if (historyContainer && this.data && Array.isArray(this.data.history)) {
+                historyContainer.innerHTML = this.data.history.map(rel => {
+                    const items = (rel.changes || []).map(ch => {
+                        const tagClass = ch.category === 'feature' ? 'tag-new' : ch.category === 'fix' ? 'tag-fix' : 'tag-improved';
+                        const tagLabel = ch.tag || (ch.category === 'feature' ? 'NEW' : ch.category === 'fix' ? 'FIX' : 'IMPROVED');
+                        return `
+                            <div class="whats-new-history-item">
+                                <span class="whats-new-tag ${tagClass}">${escapeHtml(tagLabel)}</span>
+                                <div class="whats-new-history-content"><strong>${escapeHtml(ch.title || '')}:</strong> ${escapeHtml(ch.description || '')}</div>
+                            </div>
+                        `;
+                    }).join('');
+                    return `
+                        <div class="history-release-block">
+                            <div class="history-release-header">
+                                <span class="history-mini-version-chip">v${escapeHtml(rel.version || '').replace(/^v/i, '')}</span>
+                            </div>
+                            ${items}
+                        </div>
+                    `;
+                }).join('');
+            }
+        },
+
+        showModal() {
+            const latest = (this.data && this.data.latest) || {
+                version: this.currentVersion,
+                displayDate: 'September 30, 2026',
+                summary: 'Here is what changed in the latest StudyVerse update!',
+                changes: [
+                    { category: 'feature', tag: 'NEW', title: 'Floating Release Notification System', description: 'Automatic release notes that notify returning scholars about fresh site updates.' },
+                    { category: 'improvement', tag: 'IMPROVED', title: 'Seamless Guest Cookie Persistence', description: 'Your student session and guest cookies stay intact across site updates.' },
+                    { category: 'improvement', tag: 'IMPROVED', title: 'Google Classroom & Course Sync', description: 'Enhanced coursework and stream syncing.' }
+                ]
+            };
+
+            this.renderChanges(latest);
+
+            const modal = document.getElementById('whatsNewModal');
+            if (modal) modal.classList.add('show');
+        },
+
+        dismissModal() {
+            const modal = document.getElementById('whatsNewModal');
+            if (modal) modal.classList.remove('show');
+
+            Store.setCookie('sv_visitor_initialized', 'true', 365);
+            Store.setCookie('sv_last_seen_version', this.currentVersion, 365);
+            localStorage.setItem('sv_visitor_initialized', 'true');
+            localStorage.setItem('sv_last_seen_version', this.currentVersion);
+
+            const badge = document.getElementById('dropWhatsNewBadge');
+            if (badge) badge.style.display = 'none';
+        },
+
+        toggleHistory() {
+            this.historyVisible = !this.historyVisible;
+            const container = document.getElementById('whatsNewHistoryContainer');
+            const btnText = document.getElementById('whatsNewHistoryBtnText');
+            const chevron = document.getElementById('whatsNewHistoryChevron');
+
+            if (container) container.style.display = this.historyVisible ? 'flex' : 'none';
+            if (btnText) btnText.textContent = this.historyVisible ? 'Hide Past Updates' : 'View Past Updates';
+            if (chevron) chevron.style.transform = this.historyVisible ? 'rotate(180deg)' : 'none';
+        }
+    };
+
     document.addEventListener('DOMContentLoaded', async () => {
         Constellations.init();
         await Store.init();
@@ -3709,6 +4342,7 @@
         Classroom.init();
         SettingsModal.init();
         Router.init();
+        await UpdatesModule.init();
 
         window.StudyVerse = {
             Store,
@@ -3722,6 +4356,7 @@
             Dashboard,
             Classroom,
             SettingsModal,
+            UpdatesModule,
             Router,
             Toast,
             ProfileModal,

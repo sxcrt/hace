@@ -192,6 +192,108 @@ function writeUserData(uid, data) {
     }
 }
 
+app.get("/api/updates", (req, res) => {
+    const updatesFilePath = path.join(__dirname, "data", "updates.json");
+    let updatesData = null;
+    if (fs.existsSync(updatesFilePath)) {
+        try {
+            const raw = fs.readFileSync(updatesFilePath, "utf8");
+            updatesData = JSON.parse(raw);
+        } catch (e) {
+            console.error("Failed to read updates.json:", e);
+        }
+    }
+
+    if (!updatesData) {
+        updatesData = {
+            currentVersion: "1.3.0",
+            latest: {
+                version: "1.3.0",
+                date: "2026-09-30",
+                displayDate: "September 30, 2026",
+                title: "v1.3.0 Complete App Design & Workflow Update",
+                summary: "Major UI audit and usability improvements across Flashcards, Todo List, Notes, Dashboard, and Profile management.",
+                changes: [
+                    {
+                        category: "feature",
+                        tag: "NEW",
+                        title: "Flashcards Search & Bulk Deck Actions",
+                        description: "Filter flashcard decks in real-time by title or course tag, and select multiple decks for instant bulk deletion."
+                    },
+                    {
+                        category: "feature",
+                        tag: "NEW",
+                        title: "Deck Settings & Course Assignment Flow",
+                        description: "Easily rename decks and assign courses in a dedicated modal flow without card clutter."
+                    },
+                    {
+                        category: "improvement",
+                        tag: "IMPROVED",
+                        title: "Two-Zone Task Creator & Clean Empty States",
+                        description: "Streamlined task input with separate zones for options, plus centered empty state prompts across Todo, Notes, and Courses."
+                    },
+                    {
+                        category: "improvement",
+                        tag: "IMPROVED",
+                        title: "Notes Split-Pane Layout",
+                        description: "Fixed two-panel layout with left navigation sidebar and right editing pane for seamless note-taking."
+                    },
+                    {
+                        category: "improvement",
+                        tag: "IMPROVED",
+                        title: "Custom Avatar Uploads & Dashboard Cards",
+                        description: "Upload custom profile photos with a styled button, and enjoy taller, unified stat cards on your Dashboard."
+                    },
+                    {
+                        category: "fix",
+                        tag: "FIX",
+                        title: "Dark Theme Modals & Dialog Polish",
+                        description: "Unified frosted glass dialogs, clear danger zone actions, and refined calendar cell hover effects."
+                    }
+                ]
+            },
+            history: [
+                {
+                    version: "1.2.0",
+                    title: "v1.2.0",
+                    date: "2026-09-30",
+                    changes: [
+                        {
+                            category: "feature",
+                            tag: "NEW",
+                            title: "New update announcements",
+                            description: "Stay up to date with pop-up release notes whenever fresh study tools, bug fixes, and improvements arrive."
+                        },
+                        {
+                            category: "improvement",
+                            tag: "IMPROVED",
+                            title: "Your session is now saved across updates",
+                            description: "Your student profile, preferences, flashcard decks, and notes remain safely preserved in cookies across updates."
+                        },
+                        {
+                            category: "improvement",
+                            tag: "IMPROVED",
+                            title: "Faster Google Classroom sync",
+                            description: "Improved background sync for your enrolled courses, class announcements, and assignment deadlines."
+                        },
+                        {
+                            category: "fix",
+                            tag: "FIX",
+                            title: "Smoother flashcard flip & keyboard shortcuts",
+                            description: "Optimized recall rating buttons (1-4 number keys), progress tracking, and instant card flip animations."
+                        }
+                    ]
+                }
+            ]
+        };
+    }
+
+    res.json({
+        success: true,
+        data: updatesData
+    });
+});
+
 app.get("/api/user-data", (req, res) => {
     const uid = req.studyverseUid;
     const userData = readUserData(uid);
@@ -684,8 +786,8 @@ app.post("/api/classroom/sync", async (req, res) => {
 });
 
 app.post("/api/classroom/disconnect", (req, res) => {
-    const uid = req.studyverseUid;
-    const userData = readUserData(uid);
+    const oldUid = req.studyverseUid;
+    const userData = readUserData(oldUid);
     userData.classroom = {
         connected: false,
         user: null,
@@ -694,8 +796,49 @@ app.post("/api/classroom/disconnect", (req, res) => {
         upcoming: [],
         recentPosts: []
     };
-    writeUserData(uid, userData);
-    res.json({ success: true, message: "Disconnected Google Classroom successfully." });
+    writeUserData(oldUid, userData);
+
+    // Issue a fresh guest cookie and blank state
+    const newGuestUid = `sv_usr_${Date.now()}_${crypto.randomBytes(6).toString("hex")}`;
+    res.cookie(COOKIE_NAME, newGuestUid, {
+        maxAge: 365 * 24 * 60 * 60 * 1000,
+        httpOnly: false,
+        sameSite: "lax",
+        path: "/"
+    });
+
+    const blankGuest = {
+        uid: newGuestUid,
+        createdAt: new Date().toISOString(),
+        profile: {
+            username: "Scholar",
+            pfp: "star",
+            customAvatarUrl: null,
+            streak: 1,
+            lastActiveDate: new Date().toISOString().split("T")[0]
+        },
+        metrics: [],
+        tasks: [],
+        notes: [],
+        events: [],
+        courses: [],
+        decks: [],
+        classroom: {
+            connected: false,
+            user: null,
+            lastSynced: null,
+            classes: [],
+            upcoming: [],
+            recentPosts: []
+        },
+        pomodoro: {
+            completedSessions: 0,
+            totalFocusMinutes: 0
+        }
+    };
+    writeUserData(newGuestUid, blankGuest);
+
+    res.json({ success: true, message: "Disconnected Google Classroom and reset to guest profile.", uid: newGuestUid, data: blankGuest });
 });
 
 async function extractTextFromPDF(buffer) {
@@ -767,7 +910,10 @@ app.post("/api/upload-file", upload.single("file"), async (req, res) => {
 });
 
 function cleanTerm(term) {
-    return term.replace(/^[\s●•\-\d\.\)]+/g, "").trim();
+    return (term || "")
+        .replace(/^[\s●•\-\d\.\)]+/g, "")
+        .replace(/[,;:\-]+$/g, "")
+        .trim();
 }
 
 function generateSmartEducationalFlashcards(text, count = 10) {
@@ -788,13 +934,13 @@ function generateSmartEducationalFlashcards(text, count = 10) {
         const colonIdx = line.indexOf(":");
         if (colonIdx > 2 && colonIdx < 50) {
             const rawTerm = cleanTerm(line.slice(0, colonIdx));
-            const explanation = line.slice(colonIdx + 1).trim();
+            const explanation = cleanTerm(line.slice(colonIdx + 1));
             if (rawTerm.length >= 3 && explanation.length >= 4 && !seenTerms.has(rawTerm.toLowerCase())) {
                 seenTerms.add(rawTerm.toLowerCase());
                 cards.push({
                     id: `fc_${Date.now()}_${cards.length}`,
-                    question: `What is ${rawTerm}, and how is it used or applied?`,
-                    answer: explanation,
+                    question: `What is ${rawTerm}, and what does it define or study?`,
+                    answer: `${rawTerm} is ${explanation.charAt(0).toLowerCase() + explanation.slice(1)}.`,
                     concept: rawTerm,
                     hint: `Focus on the definition and function of ${rawTerm}.`
                 });
@@ -805,13 +951,13 @@ function generateSmartEducationalFlashcards(text, count = 10) {
         const dashMatch = line.match(/^([^–—\-]{3,40})\s*[-–—]\s*(.+)$/);
         if (dashMatch) {
             const rawTerm = cleanTerm(dashMatch[1]);
-            const explanation = dashMatch[2].trim();
+            const explanation = cleanTerm(dashMatch[2]);
             if (rawTerm.length >= 3 && explanation.length >= 4 && !seenTerms.has(rawTerm.toLowerCase())) {
                 seenTerms.add(rawTerm.toLowerCase());
                 cards.push({
                     id: `fc_${Date.now()}_${cards.length}`,
-                    question: `How is "${rawTerm}" defined and characterized in this context?`,
-                    answer: explanation,
+                    question: `What is ${rawTerm}, and what are its core characteristics?`,
+                    answer: `${rawTerm} refers to ${explanation.charAt(0).toLowerCase() + explanation.slice(1)}.`,
                     concept: rawTerm,
                     hint: `Key terminology and core concepts`
                 });
@@ -821,13 +967,13 @@ function generateSmartEducationalFlashcards(text, count = 10) {
 
         if (/^[●•\-\d\.]+\s+/.test(line) && i + 1 < rawSegments.length && !/^[●•\-\d\.]+\s+/.test(rawSegments[i + 1])) {
             const rawTerm = cleanTerm(line);
-            const explanation = rawSegments[i + 1].trim();
+            const explanation = cleanTerm(rawSegments[i + 1]);
             if (rawTerm.length >= 3 && explanation.length >= 5 && !seenTerms.has(rawTerm.toLowerCase())) {
                 seenTerms.add(rawTerm.toLowerCase());
                 cards.push({
                     id: `fc_${Date.now()}_${cards.length}`,
-                    question: `What are the key elements and function of ${rawTerm}?`,
-                    answer: explanation,
+                    question: `What is ${rawTerm}, and how does it function?`,
+                    answer: `${rawTerm} is ${explanation.charAt(0).toLowerCase() + explanation.slice(1)}.`,
                     concept: rawTerm,
                     hint: `Think of examples and application for ${rawTerm}.`
                 });
@@ -843,10 +989,10 @@ function generateSmartEducationalFlashcards(text, count = 10) {
             if (cards.length >= count) return;
             const sentences = p.split(/(?<=[.?!])\s+/).filter(s => s.trim().length > 10);
             if (sentences.length >= 2) {
-                const topicSentence = sentences[0].replace(/^[\s●•\-\d\.]+/g, "").trim();
+                const topicSentence = cleanTerm(sentences[0]);
                 cards.push({
                     id: `fc_${Date.now()}_${cards.length}`,
-                    question: `Explain the fundamental concept behind: "${topicSentence}"`,
+                    question: `Explain the key principle behind: "${topicSentence}"`,
                     answer: sentences.slice(1).join(" "),
                     concept: `Key Concept ${idx + 1}`,
                     hint: `Synthesize the primary mechanism or reasoning.`
@@ -858,7 +1004,7 @@ function generateSmartEducationalFlashcards(text, count = 10) {
     if (cards.length === 0) {
         cards.push({
             id: `fc_${Date.now()}_0`,
-            question: "What is the primary synthesis and takeaway of this study material?",
+            question: "What is the primary takeaway of this study material?",
             answer: text.slice(0, 320),
             concept: "General Summary",
             hint: "Review core definitions and applications."
@@ -1078,6 +1224,136 @@ ${studyText.slice(0, 35000)}
         return res.status(500).json({
             success: false,
             error: err.message || "Failed to generate flashcards."
+        });
+    }
+});
+
+app.post("/api/flashcards/ai-help", async (req, res) => {
+    try {
+        const { type, question, answer, explanation, userQuestion } = req.body || {};
+        if (!question || !answer) {
+            return res.status(400).json({ success: false, error: "Question and answer are required." });
+        }
+
+        let userPrompt = "";
+        if (type === "ask") {
+            userPrompt = `A student is studying this flashcard and still doesn't understand after reading an explanation. Answer their specific question directly and concisely. Do not repeat the card content or the previous explanation unless necessary. Just answer what they asked.
+
+Card question: ${question}
+Card answer: ${answer}
+Previous explanation: ${explanation || "N/A"}
+Student's question: ${userQuestion || ""}`;
+        } else {
+            userPrompt = `You are a tutor explaining a concept to a student who got a flashcard wrong. Do NOT rephrase the question or restate the answer. Instead: define the core concept in simple terms, give one real-world analogy or example that makes it click, and explain why the answer on the card is correct. Be specific and concrete. Maximum 4 sentences.
+
+Card question: ${question}
+Card answer: ${answer}`;
+        }
+
+        let responseText = "";
+
+        const currentGeminiKey = (process.env.GEMINI_API_KEY || "").trim();
+        if (currentGeminiKey) {
+            try {
+                const client = new GoogleGenAI({
+                    apiKey: currentGeminiKey,
+                    httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+                });
+
+                const candidateModels = ["gemini-2.5-flash", "gemini-3.8-flash", "gemini-3.1-flash-lite"];
+                for (const modelName of candidateModels) {
+                    try {
+                        const aiRes = await client.models.generateContent({
+                            model: modelName,
+                            contents: userPrompt,
+                            config: {
+                                tools: [{ googleSearch: {} }]
+                            }
+                        });
+                        if (aiRes && aiRes.text && aiRes.text.trim().length > 10) {
+                            responseText = aiRes.text.trim();
+                            break;
+                        }
+                    } catch (toolErr) {
+                        try {
+                            const standardRes = await client.models.generateContent({
+                                model: modelName,
+                                contents: userPrompt
+                            });
+                            if (standardRes && standardRes.text && standardRes.text.trim().length > 10) {
+                                responseText = standardRes.text.trim();
+                                break;
+                            }
+                        } catch (stdErr) {}
+                    }
+                }
+            } catch (geminiInitErr) {
+                console.warn("Gemini client error in ai-help:", geminiInitErr.message);
+            }
+        }
+
+        const currentORKey = (process.env.OPENROUTER_API_KEY || "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").trim();
+        if (!responseText && currentORKey) {
+            const fallbackModels = [
+                "google/gemini-2.5-flash",
+                "meta-llama/llama-3.3-70b-instruct",
+                "mistralai/mistral-small-24b-instruct-2501",
+                "qwen/qwen-2.5-72b-instruct"
+            ];
+
+            for (const orModel of fallbackModels) {
+                try {
+                    const orResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${currentORKey}`,
+                            "Content-Type": "application/json",
+                            "HTTP-Referer": "https://studyverse.app",
+                            "X-Title": "StudyVerse"
+                        },
+                        body: JSON.stringify({
+                            model: orModel,
+                            messages: [
+                                { role: "user", content: userPrompt }
+                            ],
+                            temperature: 0.3,
+                            max_tokens: 400
+                        })
+                    });
+
+                    if (orResponse.ok) {
+                        const orJson = await orResponse.json();
+                        const content = orJson.choices?.[0]?.message?.content?.trim();
+                        if (content && content.length > 10) {
+                            responseText = content;
+                            break;
+                        }
+                    }
+                } catch (orErr) {
+                    console.warn(`OpenRouter error with ${orModel}:`, orErr.message);
+                }
+            }
+        }
+
+        if (!responseText) {
+            const cleanQ = question.replace(/^What is /i, "").replace(/\?$/, "");
+            const cleanA = answer.replace(/\.$/, "");
+            if (type === "ask") {
+                responseText = `In simple terms: ${cleanQ} is centered around ${cleanA.toLowerCase()}. Whenever analyzing this topic, remember that this core relationship is the foundational mechanism.`;
+            } else {
+                responseText = `${cleanA.charAt(0).toUpperCase() + cleanA.slice(1)} provides the key mechanism for understanding ${cleanQ.toLowerCase()}. Keep this connection in mind when solving problems on this topic.`;
+            }
+        }
+
+        return res.json({
+            success: true,
+            text: responseText
+        });
+    } catch (err) {
+        console.error("Flashcards AI help route error:", err);
+        return res.status(500).json({
+            success: false,
+            error: err.message || "Failed to generate explanation."
         });
     }
 });

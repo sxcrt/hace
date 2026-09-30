@@ -1,8 +1,8 @@
 {
   "name": "StudyVerse",
-  "description": "hi.",
+  "description": "All-in-one student workspace with academic calendar, pomodoro focus timer, Anki flashcards with AI explanation, todo tasks, and class notes.",
   "permissions": [],
   "capabilities": [
-    ""
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]
 }
